@@ -4,14 +4,14 @@ const esc_char: []const u8 = "\x1b";
 
 /// Main structure for the color.
 pub const Color = struct {
-    options: std.ArrayList(u8),
+    options: std.ArrayList(Attr),
     color_enabled: bool,
-    alloc: *std.mem.Allocator,
+    alloc: std.mem.Allocator,
 
     /// This function initialize an instance of the Color struct.
-    pub fn init(alloc: *std.mem.Allocator) Color {
-        var options = std.ArrayList(u8).init(alloc);
-        var color_enabled = true;
+    pub fn init(alloc: std.mem.Allocator) Color {
+        const options = std.ArrayList(Attr).init(alloc);
+        const color_enabled = true;
         return .{
             .options = options,
             .color_enabled = color_enabled,
@@ -20,19 +20,20 @@ pub const Color = struct {
     }
 
     /// Deinitialize a given instance of the Color struct.
-    fn deinit(self: *Color) void {
+    pub fn deinit(self: *Color) void {
         self.options.deinit();
+        self.* = undefined;
     }
 
     /// Set the color attribute of a given Color struct.
-    fn set(self: *Color, attr: Attr) void {
-        self.options.append(attr);
+    pub fn setAttr(self: *Color, attr: Attr) !void {
+        try self.options.append(attr);
     }
 };
 
-/// Enumeration with the color attribute
-const Attr = enum {
-    black,
+/// Enumeration with the color attribute tag.
+pub const Attr = enum(u8) {
+    black = 30,
     red,
     green,
     yellow,
