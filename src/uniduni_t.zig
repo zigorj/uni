@@ -2,71 +2,47 @@ const std = @import("std");
 
 const esc_char: []const u8 = "\x1b";
 
+/// This function initialize an instance of the Color struct.
+pub fn init(alloc: std.mem.Allocator, color: Color) Uniduni_t {
+    return Uniduni_t{
+        .color = color,
+        .alloc = alloc,
+    };
+}
+
 /// Main structure for the color.
-pub const Color = struct {
-    options: std.ArrayList(Attribute),
+pub const Uniduni_t = struct {
+    // options: std.ArrayList(Attribute),
+    color: Color,
     alloc: std.mem.Allocator,
 
-    /// This function initialize an instance of the Color struct.
-    pub fn init(alloc: std.mem.Allocator) Color {
-        return .{
-            .options = std.ArrayList(Attribute).init(alloc),
-            .alloc = alloc,
-        };
-    }
-
     /// Deinitialize a given instance of the Color struct.
-    pub fn deinit(self: *Color) void {
-        self.options.deinit();
+    pub fn deinit(self: *Uniduni_t) void {
         self.* = undefined;
     }
 
-    /// Set the color attribute of a given Color struct.
-    pub fn setAttribute(self: *Color, attr: Attribute) !void {
-        try self.options.append(attr);
+    /// Prepare the attributes string.
+    fn prepAttributeStr(self: *Uniduni_t) ![]const u8 {
+        const s: []const u8 = try std.fmt.allocPrint(self.alloc, "{s}[{d}m", .{ esc_char, @intFromEnum(self.color) });
+        return s;
     }
 
-    pub fn setBlack(self: *Color) !void {
-        try self.setAttribute(Attribute.black);
-    }
+    /// Print a given string considering the Color struct attributes.
+    pub fn print(self: *Uniduni_t, s: []const u8) !void {
+        const stdout = std.io.getStdOut().writer();
 
-    pub fn setRed(self: *Color) !void {
-        try self.setAttribute(Attribute.red);
-    }
+        const c_str = try self.prepAttributeStr();
+        defer self.alloc.free(c_str);
 
-    pub fn setGreen(self: *Color) !void {
-        try self.setAttribute(Attribute.green);
-    }
-
-    pub fn setYellow(self: *Color) !void {
-        try self.setAttribute(Attribute.yellow);
-    }
-
-    pub fn setBlue(self: *Color) !void {
-        try self.setAttribute(Attribute.blue);
-    }
-
-    pub fn setMagenta(self: *Color) !void {
-        try self.setAttribute(Attribute.magenta);
-    }
-
-    pub fn setCyan(self: *Color) !void {
-        try self.setAttribute(Attribute.cyan);
-    }
-
-    pub fn setWhite(self: *Color) !void {
-        try self.setAttribute(Attribute.white);
-    }
-
-    pub fn print(self: *Color, output: ?[]const u8) !void {
-        // TODO
-        _ = output;
-        _ = self;
+        try stdout.print("{s}{s}{s}", .{
+            c_str,
+            s,
+        });
     }
 };
 
-/// Enumeration with the color attribute tag.
-pub const Attribute = enum(u8) {
+/// Enumeration with the color's values.
+pub const Color = enum(u8) {
     black = 30,
     red,
     green,
@@ -75,4 +51,18 @@ pub const Attribute = enum(u8) {
     magenta,
     cyan,
     white,
+};
+
+/// Enumerations with the attributes' values.
+pub const Attribute = enum(u8) {
+    reset,
+    bold,
+    faint,
+    italic,
+    underline,
+    slow_blink,
+    rapid_blink,
+    reverse_video,
+    concealed,
+    crossed_out,
 };
