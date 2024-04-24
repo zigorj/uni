@@ -3,7 +3,9 @@ const testing = std.testing;
 
 const esc_char: []const u8 = "\x1b";
 
-/// Enumeration with the style's values.
+///
+/// Style's values.
+///
 pub const Style = enum(u8) {
     reset,
     bold,
@@ -17,7 +19,9 @@ pub const Style = enum(u8) {
     crossed_out,
 };
 
-/// Enumeration with the foreground color's values.
+///
+/// Foreground color's values.
+///
 pub const FgColor = enum(u8) {
     black = 30,
     red,
@@ -30,7 +34,9 @@ pub const FgColor = enum(u8) {
     default = 39,
 };
 
-/// Enumeration with the background color's values.
+///
+/// Background color's values.
+///
 pub const BgColor = enum(u8) {
     black = 40,
     red,
@@ -43,39 +49,94 @@ pub const BgColor = enum(u8) {
     default = 49,
 };
 
-/// Main structure for the color.
+///
+/// ColorPrint is the main structure for colorizing strings and has fields
+/// to store foreground and background colors, and other styles, like bold,
+/// italic, blinking etc.
+///
+/// ColorPrint
+/// * alloc: it uses the Arena Allocator with a given allocator as a child allocator,
+/// * fg_color: some FgColor enum value,
+/// * bg_color: some BgColor enum value,
+/// * style: some Style enum value,
+///
 pub const ColorPrint = struct {
     alloc: std.heap.ArenaAllocator,
     fg_color: FgColor,
     bg_color: BgColor,
+    style: Style,
 
-    /// Initialize an instance of the Uniduni_t struct.
+    ///
+    /// Initialize an instance of ColorPrint struct.
+    ///
     pub fn init(alloc: std.mem.Allocator) ColorPrint {
         return .{
             .alloc = std.heap.ArenaAllocator.init(alloc),
             .fg_color = FgColor.default,
             .bg_color = BgColor.default,
+            .style = Style.reset,
         };
     }
 
-    /// Deinitialize a instance of the Uniduni_t struct.
+    ///
+    /// Deinitialize an instance of ColorPrint struct.
+    ///
     pub fn deinit(self: *ColorPrint) void {
         self.alloc.deinit();
         self.* = undefined;
     }
 
-    /// Set a style or a color to a Uniduni_t struct.
+    ///
+    /// Sets foreground and background colors or a style.
+    /// It accepts a tupple as parameter, with elements
+    /// of type FgColor, BgColor or Style.
+    ///
+    /// It iterates throught the elements of the tuple and sets
+    /// them as fields of the ColorPrint struct.
+    ///
+    /// Example: set(.{ FgColor.black, BgColor.red, Style.blinking });
+    ///
     pub fn set(self: *ColorPrint, comptime attr: anytype) !void {
-        const t_attr = @TypeOf(attr);
-        switch (t_attr) {
-            FgColor => self.fg_color = attr,
-            BgColor => self.bg_color = attr,
-            else => @panic("This function only accepts BgColor or FgColor as parameters.\n"),
+        const t_info_attr = @typeInfo(@TypeOf(attr));
+        if (t_info_attr != .Struct) @compileError("Unaccepted parameter");
+        if (!t_info_attr.Struct.is_tuple) @compileError("Unaccepted parameter");
+
+        inline for (attr) |v| {
+            switch (@TypeOf(v)) {
+                FgColor => self.fg_color = v,
+                BgColor => self.bg_color = v,
+                Style => self.style = v,
+                else => @compileError("Unaccepted parameter"),
+            }
         }
     }
 
-    /// Print a string passed as parameter with the colors setted as fields
-    /// of the Uniduni_t struct.
+    test "Set foreground and background color and a style" {
+        const alloc = testing.allocator;
+
+        const expected = ColorPrint{
+            .alloc = std.heap.ArenaAllocator.init(alloc),
+            .fg_color = FgColor.cyan,
+            .bg_color = BgColor.yellow,
+            .style = Style.bold,
+        };
+
+        var actual = ColorPrint.init(alloc);
+        defer actual.deinit();
+
+        try actual.set(.{ FgColor.cyan, BgColor.yellow, Style.bold });
+
+        try testing.expectEqual(expected, actual);
+    }
+
+    ///
+    /// Prints a given string with the colors chosen before with
+    /// the set method.
+    ///
+    /// It calls the parse private method to parse the colors and styles to a string.
+    ///
+    /// Example: print("This is a test colored string\n");
+    ///
     pub fn print(self: *ColorPrint, str: []const u8) !void {
         const stdout = std.io.getStdOut().writer();
         try stdout.print("{s}{s}{s}", .{ try self.parse(), str, try self.reset() });
@@ -86,14 +147,39 @@ pub const ColorPrint = struct {
         return fmt;
     }
 
+    test "Parse a colored string" {
+        const expected: []const u8 = esc_char ++ "[30;41m";
+
+        const alloc = testing.allocator;
+        var ut = ColorPrint.init(alloc);
+        defer ut.deinit();
+
+        try ut.set(.{ FgColor.black, BgColor.red });
+
+        const actual = try ut.parse();
+
+        try testing.expectEqualStrings(expected, actual);
+    }
+
     fn reset(self: *ColorPrint) ![]const u8 {
         const rst = try std.fmt.allocPrint(self.alloc.allocator(), "{s}[0m", .{esc_char});
         return rst;
     }
+
+    test "Reset string" {
+        const expected: []const u8 = esc_char ++ "[0m";
+
+        const alloc = testing.allocator;
+        var ut = ColorPrint.init(alloc);
+        defer ut.deinit();
+
+        const actual = try ut.reset();
+
+        try testing.expectEqualStrings(expected, actual);
+    }
 };
 
-// Tests
-test "Initialization of a Uniduni_t struct" {
+test "Initialization of a ColorPrint struct" {
     const expected = ColorPrint;
 
     const alloc = testing.allocator;
@@ -103,62 +189,4 @@ test "Initialization of a Uniduni_t struct" {
     const actual = @TypeOf(ut);
 
     try testing.expectEqual(expected, actual);
-}
-
-test "Set a foreground color" {
-    const expected = FgColor.cyan;
-
-    const alloc = testing.allocator;
-    var ut = ColorPrint.init(alloc);
-    defer ut.deinit();
-
-    try ut.set(FgColor.cyan);
-
-    const actual = ut.fg_color;
-
-    try testing.expectEqual(expected, actual);
-}
-
-test "Set a background color" {
-    const expected = BgColor.yellow;
-
-    const alloc = testing.allocator;
-    var ut = ColorPrint.init(alloc);
-    defer ut.deinit();
-
-    try ut.set(BgColor.yellow);
-
-    const actual = ut.bg_color;
-
-    try testing.expectEqual(expected, actual);
-}
-
-// write test to check failing when passing any type other than fg_color or bg_color.
-//
-
-test "Parse a colored string" {
-    const expected: []const u8 = esc_char ++ "[30;41m";
-
-    const alloc = testing.allocator;
-    var ut = ColorPrint.init(alloc);
-    defer ut.deinit();
-
-    try ut.set(FgColor.black);
-    try ut.set(BgColor.red);
-
-    const actual = try ut.parse();
-
-    try testing.expectEqualStrings(expected, actual);
-}
-
-test "Reset string" {
-    const expected: []const u8 = esc_char ++ "[0m";
-
-    const alloc = testing.allocator;
-    var ut = ColorPrint.init(alloc);
-    defer ut.deinit();
-
-    const actual = try ut.reset();
-
-    try testing.expectEqualStrings(expected, actual);
 }
