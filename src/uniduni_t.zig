@@ -15,8 +15,8 @@ pub const Style = enum(u8) {
     slow_blink,
     rapid_blink,
     reverse_video,
-    concealed,
-    crossed_out,
+    conceal,
+    cross_out,
 };
 
 ///
@@ -50,6 +50,15 @@ pub const BgColor = enum(u8) {
 };
 
 ///
+/// RGB struct to store color code for red, green and blue notation.
+///
+pub const RGB = struct {
+    r: u8,
+    g: u8,
+    b: u8,
+};
+
+///
 /// ColorPrint is the main structure for colorizing strings and has fields
 /// to store foreground and background colors, and other styles, like bold,
 /// italic, blinking etc.
@@ -64,7 +73,7 @@ pub const ColorPrint = struct {
     alloc: std.heap.ArenaAllocator,
     fg_color: FgColor,
     bg_color: BgColor,
-    style: Style,
+    style: ?Style,
 
     ///
     /// Initialize an instance of ColorPrint struct.
@@ -74,7 +83,7 @@ pub const ColorPrint = struct {
             .alloc = std.heap.ArenaAllocator.init(alloc),
             .fg_color = FgColor.default,
             .bg_color = BgColor.default,
-            .style = Style.reset,
+            .style = null,
         };
     }
 
@@ -143,11 +152,17 @@ pub const ColorPrint = struct {
     }
 
     fn parse(self: *ColorPrint) ![]const u8 {
-        const fmt = try std.fmt.allocPrint(self.alloc.allocator(), "{s}[{d};{d}m", .{ esc_char, @intFromEnum(self.fg_color), @intFromEnum(self.bg_color) });
+        const fmt = blk: {
+            if (self.style != null) {
+                break :blk try std.fmt.allocPrint(self.alloc.allocator(), "{s}[{d};{d};{d}m", .{ esc_char, @intFromEnum(self.fg_color), @intFromEnum(self.bg_color), @intFromEnum(self.style.?) });
+            } else {
+                break :blk try std.fmt.allocPrint(self.alloc.allocator(), "{s}[{d};{d}m", .{ esc_char, @intFromEnum(self.fg_color), @intFromEnum(self.bg_color) });
+            }
+        };
         return fmt;
     }
 
-    test "Parse a colored string" {
+    test "Parse a string" {
         const expected: []const u8 = esc_char ++ "[30;41m";
 
         const alloc = testing.allocator;
@@ -162,7 +177,7 @@ pub const ColorPrint = struct {
     }
 
     fn reset(self: *ColorPrint) ![]const u8 {
-        const rst = try std.fmt.allocPrint(self.alloc.allocator(), "{s}[0m", .{esc_char});
+        const rst = try std.fmt.allocPrint(self.alloc.allocator(), "{s}[{d}m", .{ esc_char, @intFromEnum(Style.reset) });
         return rst;
     }
 
@@ -174,6 +189,34 @@ pub const ColorPrint = struct {
         defer ut.deinit();
 
         const actual = try ut.reset();
+
+        try testing.expectEqualStrings(expected, actual);
+    }
+
+    //  implement a returnFn func and the colors helpers
+    // implement rgb
+
+    ///
+    /// Colorizes the string passed as str parameter, returning it with the
+    /// color and styles that were setted to the ColorPrint struct fields.
+    ///
+    /// Example: colorize("This is a test\n");
+    ///
+    pub fn colorize(self: *ColorPrint, str: []const u8) ![]const u8 {
+        const fmt = try std.fmt.allocPrint(self.alloc.allocator(), "{s}{s}{s}", .{ try self.parse(), str, try self.reset() });
+        return fmt;
+    }
+
+    test "Colorize a string" {
+        const expected: []const u8 = esc_char ++ "[35;47;9m" ++ "Colorize Me!" ++ esc_char ++ "[0m";
+
+        const alloc = testing.allocator;
+        var ut = ColorPrint.init(alloc);
+        defer ut.deinit();
+
+        try ut.set(.{ FgColor.magenta, BgColor.white, Style.cross_out });
+
+        const actual = try ut.colorize("Colorize Me!");
 
         try testing.expectEqualStrings(expected, actual);
     }
