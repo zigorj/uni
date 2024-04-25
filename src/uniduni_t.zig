@@ -1,12 +1,12 @@
-// implement rgb
+// - rgb
+// - writer
+// - set (use on previous code)
 const std = @import("std");
 const testing = std.testing;
 
 const esc_char: []const u8 = "\x1b";
 
-///
 /// Style's values.
-///
 pub const Style = enum(u8) {
     reset,
     bold,
@@ -20,10 +20,8 @@ pub const Style = enum(u8) {
     cross_out,
 };
 
-///
 /// Foreground color's values.
-///
-pub const FgColor = enum(u8) {
+pub const ForegroundColor = enum(u8) {
     black = 30,
     red,
     green,
@@ -32,13 +30,12 @@ pub const FgColor = enum(u8) {
     magenta,
     cyan,
     white,
-    default = 39,
+    rgb = 38,
+    default,
 };
 
-///
 /// Background color's values.
-///
-pub const BgColor = enum(u8) {
+pub const BackgroundColor = enum(u8) {
     black = 40,
     red,
     green,
@@ -47,215 +44,194 @@ pub const BgColor = enum(u8) {
     magenta,
     cyan,
     white,
-    default = 49,
+    rgb = 48,
+    default,
 };
 
-///
+/// ColorType is an union to specify if a color is background or foreground (for RGB).
+pub const ColorType = enum {
+    foreground,
+    background,
+};
+
 /// RGB struct to store color code for red, green and blue notation.
-///
 pub const RGB = struct {
     r: u8,
     g: u8,
     b: u8,
+    t: ColorType,
 };
 
-///
-/// ColorPrint is the main structure for colorizing strings and has fields
-/// to store foreground and background colors, and other styles, like bold,
-/// italic, blinking etc.
-///
-/// ColorPrint {
-///     .alloc: it uses the Arena Allocator with a given allocator as a child allocator,
-///     .fg_color: some FgColor enum value,
-///     .bg_color: some BgColor enum value,
-///     .style: some Style enum value,
-/// };
-///
+/// Color is a struct representing all type of colors.
+pub const Color = union(enum) {
+    foreground: ForegroundColor,
+    background: BackgroundColor,
+    rgb: RGB,
+};
+
+/// ColorPrint is the main structure for colorizing strings and has fields to store
+/// foreground and background colors and other styles, like bold, italic, blinking etc.
 pub const ColorPrint = struct {
     alloc: std.heap.ArenaAllocator,
-    fg_color: FgColor,
-    bg_color: BgColor,
+    color: [2]Color,
     style: ?Style,
 
-    ///
     /// Initialize an instance of ColorPrint struct.
-    ///
     pub fn init(alloc: std.mem.Allocator) ColorPrint {
         return .{
             .alloc = std.heap.ArenaAllocator.init(alloc),
-            .fg_color = FgColor.default,
-            .bg_color = BgColor.default,
+            .color = [2]Color{
+                Color{ .foreground = ForegroundColor.default },
+                Color{ .background = BackgroundColor.default },
+            },
             .style = null,
         };
     }
 
-    ///
     /// Deinitialize an instance of ColorPrint struct.
-    ///
     pub fn deinit(self: *ColorPrint) void {
         self.alloc.deinit();
         self.* = undefined;
     }
 
-    ///
-    /// Sets foreground and background colors or a style.
-    /// It accepts a tupple as parameter, with elements
-    /// of type FgColor, BgColor or Style.
-    ///
-    /// It iterates throught the elements of the tuple and sets
-    /// them as fields of the ColorPrint struct.
-    ///
-    /// Example:
-    ///
-    /// const alloc = std.heap.page_allocator;
-    ///
-    /// var ut = ColorPrint.init(alloc);
-    /// defer ut.deinit();
-    ///
-    /// try ut.set(.{ FgColor.black, BgColor.red, Style.blinking });
-    ///
-    pub fn set(self: *ColorPrint, comptime attr: anytype) !void {
+    /// Add foreground and background colors or styles. It accepts a tupple as parameter,
+    /// with elements of type Color or Style.
+    /// It iterates throught the elements of the tuple and adds them as fields of the
+    /// ColorPrint struct.
+    pub fn add(self: *ColorPrint, comptime attr: anytype) void {
         const t_info_attr = @typeInfo(@TypeOf(attr));
-        if (t_info_attr != .Struct) @compileError("Unaccepted parameter");
-        if (!t_info_attr.Struct.is_tuple) @compileError("Unaccepted parameter");
+        if (t_info_attr != .Struct) @compileError("Unaccepted parameter.");
+        if (!t_info_attr.Struct.is_tuple) @compileError("Unaccepted parameter.");
 
-        inline for (attr) |v| {
-            switch (@TypeOf(v)) {
-                FgColor => self.fg_color = v,
-                BgColor => self.bg_color = v,
-                Style => self.style = v,
-                else => @compileError("Unaccepted parameter"),
+        inline for (attr) |attribute| {
+            switch (@TypeOf(attribute)) {
+                Color => {
+                    switch (attribute) {
+                        .foreground => |fg_color| self.color[0] = Color{ .foreground = fg_color },
+                        .background => |bg_color| self.color[1] = Color{ .background = bg_color },
+                        .rgb => |rgb_color| {
+                            if (@TypeOf(rgb_color.t) == ColorType.foreground) {
+                                self.color[0] = Color{ .rgb = rgb_color };
+                            } else {
+                                self.color[1] = Color{ .rgb = rgb_color };
+                            }
+                        },
+                    }
+                },
+                Style => self.style = attribute,
+                else => @compileError("Unaccepted parameter."),
             }
         }
     }
 
-    test "Set foreground and background color and a style" {
+    test "Add foreground and background color and a style" {
         const alloc = testing.allocator;
 
         const expected = ColorPrint{
             .alloc = std.heap.ArenaAllocator.init(alloc),
-            .fg_color = FgColor.cyan,
-            .bg_color = BgColor.yellow,
+            .color = [2]Color{
+                Color{ .foreground = ForegroundColor.cyan },
+                Color{ .background = BackgroundColor.yellow },
+            },
             .style = Style.bold,
         };
 
         var actual = ColorPrint.init(alloc);
         defer actual.deinit();
 
-        try actual.set(.{ FgColor.cyan, BgColor.yellow, Style.bold });
+        actual.add(.{ Color{ .foreground = ForegroundColor.cyan }, Color{ .background = BackgroundColor.yellow }, Style.bold });
 
         try testing.expectEqual(expected, actual);
     }
 
-    ///
-    /// Unsets every field of ColorPrint struct.
-    ///
-    /// It will set the default values as bellow:
-    ///
-    /// ColorPrint{
-    ///     .fg_color = FgColor.default,
-    ///     .bg_color = BgColor.default,
-    ///     .style = null,
-    /// };
-    ///
-    pub fn unsetAll(self: *ColorPrint) void {
-        self.fg_color = FgColor.default;
-        self.bg_color = BgColor.default;
+    /// Unset colors and styles.
+    pub fn unsetEverything(self: *ColorPrint) void {
+        self.color = [2]Color{
+            Color{ .foreground = ForegroundColor.default },
+            Color{ .background = BackgroundColor.default },
+        };
         self.style = null;
     }
 
-    test "Unset all fields" {
+    test "Unset everything" {
         const alloc = testing.allocator;
 
         const expected = ColorPrint{
             .alloc = std.heap.ArenaAllocator.init(alloc),
-            .fg_color = FgColor.default,
-            .bg_color = BgColor.default,
+            .color = [2]Color{
+                Color{ .foreground = ForegroundColor.default },
+                Color{ .background = BackgroundColor.default },
+            },
             .style = null,
         };
 
         var actual = ColorPrint.init(alloc);
         defer actual.deinit();
 
-        try actual.set(.{ FgColor.cyan, BgColor.yellow, Style.bold });
-        actual.unsetAll();
+        actual.add(.{
+            Color{ .foreground = ForegroundColor.green },
+            Color{ .background = BackgroundColor.cyan },
+            Style.bold,
+        });
+        actual.unsetEverything();
 
         try testing.expectEqual(expected, actual);
     }
 
-    ///
-    /// Unsets foreground color field
-    ///
-    /// It will set the default value as bellow:
-    ///
-    /// ColorPrint{
-    ///     .fg_color = FgColor.default,
-    /// };
-    ///
-    pub fn unsetFgColor(self: *ColorPrint) void {
-        self.fg_color = FgColor.default;
+    /// Set foreground color to default
+    pub fn defaultForeground(self: *ColorPrint) void {
+        self.color[0] = Color{ .foreground = ForegroundColor.default };
     }
 
-    test "Unset foreground color" {
+    test "Set foreground to default" {
         const alloc = testing.allocator;
 
         const expected = ColorPrint{
             .alloc = std.heap.ArenaAllocator.init(alloc),
-            .fg_color = FgColor.default,
-            .bg_color = BgColor.yellow,
-            .style = Style.bold,
+            .color = [2]Color{
+                Color{ .foreground = ForegroundColor.default },
+                Color{ .background = BackgroundColor.default },
+            },
+            .style = null,
         };
 
         var actual = ColorPrint.init(alloc);
         defer actual.deinit();
 
-        try actual.set(.{ FgColor.cyan, BgColor.yellow, Style.bold });
-        actual.unsetFgColor();
+        actual.add(.{Color{ .foreground = ForegroundColor.black }});
+
+        actual.defaultForeground();
 
         try testing.expectEqual(expected, actual);
     }
 
-    ///
-    /// Unsets background color field
-    ///
-    /// It will set the default value as bellow:
-    ///
-    /// ColorPrint{
-    ///     .bg_color = BgColor.default,
-    /// };
-    ///
-    pub fn unsetBgColor(self: *ColorPrint) void {
-        self.bg_color = BgColor.default;
+    /// Set background color to default.
+    pub fn defaultBackground(self: *ColorPrint) void {
+        self.color[1] = Color{ .background = BackgroundColor.default };
     }
 
-    test "Unset background color" {
+    test "Set background to default" {
         const alloc = testing.allocator;
 
         const expected = ColorPrint{
             .alloc = std.heap.ArenaAllocator.init(alloc),
-            .fg_color = FgColor.cyan,
-            .bg_color = BgColor.default,
-            .style = Style.bold,
+            .color = [2]Color{
+                Color{ .foreground = ForegroundColor.default },
+                Color{ .background = BackgroundColor.default },
+            },
+            .style = null,
         };
 
         var actual = ColorPrint.init(alloc);
         defer actual.deinit();
 
-        try actual.set(.{ FgColor.cyan, BgColor.yellow, Style.bold });
-        actual.unsetBgColor();
+        actual.add(.{Color{ .background = BackgroundColor.magenta }});
+        actual.defaultBackground();
 
         try testing.expectEqual(expected, actual);
     }
 
-    ///
-    /// Unsets style color field
-    ///
-    /// It will set the default value as bellow:
-    ///
-    /// ColorPrint{
-    ///     .style = null,
-    /// };
-    ///
+    /// Unset style.
     pub fn unsetStyle(self: *ColorPrint) void {
         self.style = null;
     }
@@ -265,60 +241,50 @@ pub const ColorPrint = struct {
 
         const expected = ColorPrint{
             .alloc = std.heap.ArenaAllocator.init(alloc),
-            .fg_color = FgColor.cyan,
-            .bg_color = BgColor.yellow,
+            .color = [2]Color{
+                Color{ .foreground = ForegroundColor.default },
+                Color{ .background = BackgroundColor.default },
+            },
             .style = null,
         };
 
         var actual = ColorPrint.init(alloc);
         defer actual.deinit();
 
-        try actual.set(.{ FgColor.cyan, BgColor.yellow, Style.bold });
+        actual.add(.{Style.underline});
         actual.unsetStyle();
-
         try testing.expectEqual(expected, actual);
     }
 
-    ///
-    /// Prints a given string with the colors chosen before with
-    /// the set method.
-    ///
-    /// It calls the parse private method to parse the colors and styles to a string.
-    ///
-    /// Example:
-    /// const alloc = std.heap.page_allocator;
-    ///
-    /// var ut = ColorPrint.init(alloc);
-    /// defer ut.deinit();
-    ///
-    /// try ut.set(.{ FgColor.yellow });
-    ///
-    /// print("This is a yellow text\n");
-    ///
+    /// Prints a given string with the colors added to the ColorPrint struct instance.
+    /// It calls the parse private method to parse the colors and styles to a string that
+    /// will be added before the str parameter.
     pub fn print(self: *ColorPrint, str: []const u8) !void {
         const stdout = std.io.getStdOut().writer();
         try stdout.print("{s}{s}{s}", .{ try self.parse(), str, try self.reset() });
     }
 
     fn parse(self: *ColorPrint) ![]const u8 {
-        const fmt = blk: {
-            if (self.style != null) {
-                break :blk try std.fmt.allocPrint(self.alloc.allocator(), "{s}[{d};{d};{d}m", .{ esc_char, @intFromEnum(self.fg_color), @intFromEnum(self.bg_color), @intFromEnum(self.style.?) });
-            } else {
-                break :blk try std.fmt.allocPrint(self.alloc.allocator(), "{s}[{d};{d}m", .{ esc_char, @intFromEnum(self.fg_color), @intFromEnum(self.bg_color) });
+        // IMPLEMENT IN SMALL STEPS. parseColor + parseStyle (if not null).
+        const fmt: []const u8 = blk: {
+            if (std.mem.eql(u8, @tagName(self.color[0]), "foreground") and std.mem.eql(u8, @tagName(self.color[1]), "background")) {
+                if (self.style == null) break :blk try std.fmt.allocPrint(self.alloc.allocator(), "{s}[{d};{d}m", .{ esc_char, @intFromEnum(self.color[0].foreground), @intFromEnum(self.color[1].background) });
+                break :blk try std.fmt.allocPrint(self.alloc.allocator(), "{s}[{d};{d};{d}m", .{ esc_char, @intFromEnum(self.color[0].foreground), @intFromEnum(self.color[1].background), @intFromEnum(self.style.?) });
             }
+            // IMPLEMENT OTHER PATHS
+            break :blk "test";
         };
         return fmt;
     }
 
-    test "Parse a string" {
+    test "Parse a string with colors" {
         const expected: []const u8 = esc_char ++ "[30;41m";
 
         const alloc = testing.allocator;
         var ut = ColorPrint.init(alloc);
         defer ut.deinit();
 
-        try ut.set(.{ FgColor.black, BgColor.red });
+        ut.add(.{ Color{ .foreground = ForegroundColor.black }, Color{ .background = BackgroundColor.red } });
 
         const actual = try ut.parse();
 
@@ -342,146 +308,65 @@ pub const ColorPrint = struct {
         try testing.expectEqualStrings(expected, actual);
     }
 
-    ///
     /// Prints a text with black foreground and default background color.
-    ///
-    /// This function is an alias for:
-    ///
-    /// const alloc = std.heap.page_allocator;
-    /// var ut = ColorPrint.init(alloc);
-    /// ut.set(.{FgColor.black});
-    /// ut.print("String");
-    ///
     pub fn black(self: *ColorPrint, str: []const u8) !void {
-        self.unsetAll();
-        try self.set(.{FgColor.black});
+        self.unsetEverything();
+        self.add(.{Color{ .foreground = ForegroundColor.black }});
         return try self.print(str);
     }
 
-    ///
     /// Prints a text with red foreground and default background color.
-    ///
-    /// This function is an alias for:
-    ///
-    /// const alloc = std.heap.page_allocator;
-    /// var ut = ColorPrint.init(alloc);
-    /// ut.set(.{FgColor.red});
-    /// ut.print("String");
-    ///
     pub fn red(self: *ColorPrint, str: []const u8) !void {
-        self.unsetAll();
-        try self.set(.{FgColor.red});
+        self.unsetEverything();
+        self.add(.{Color{ .foreground = ForegroundColor.red }});
         return try self.print(str);
     }
 
-    ///
     /// Prints a text with green foreground and default background color.
-    ///
-    /// This function is an alias for:
-    ///
-    /// const alloc = std.heap.page_allocator;
-    /// var ut = ColorPrint.init(alloc);
-    /// ut.set(.{FgColor.green});
-    /// ut.print("String");
-    ///
     pub fn green(self: *ColorPrint, str: []const u8) !void {
-        self.unsetAll();
-        try self.set(.{FgColor.green});
+        self.unsetEverything();
+        self.add(.{Color{ .foreground = ForegroundColor.green }});
         return try self.print(str);
     }
 
-    ///
     /// Prints a text with yellow foreground and default background color.
-    ///
-    /// This function is an alias for:
-    ///
-    /// const alloc = std.heap.page_allocator;
-    /// var ut = ColorPrint.init(alloc);
-    /// ut.set(.{FgColor.yellow});
-    /// ut.print("String");
-    ///
     pub fn yellow(self: *ColorPrint, str: []const u8) !void {
-        self.unsetAll();
-        try self.set(.{FgColor.yellow});
+        self.unsetEverything();
+        self.add(.{Color{ .foreground = ForegroundColor.yellow }});
         return try self.print(str);
     }
 
-    ///
     /// Prints a text with blue foreground and default background color.
-    ///
-    /// This function is an alias for:
-    ///
-    /// const alloc = std.heap.page_allocator;
-    /// var ut = ColorPrint.init(alloc);
-    /// ut.set(.{FgColor.blue});
-    /// ut.print("String");
-    ///
     pub fn blue(self: *ColorPrint, str: []const u8) !void {
-        self.unsetAll();
-        try self.set(.{FgColor.blue});
+        self.unsetEverything();
+        self.add(.{Color{ .foreground = ForegroundColor.blue }});
         return try self.print(str);
     }
 
-    ///
     /// Prints a text with magenta foreground and default background color.
-    ///
-    /// This function is an alias for:
-    ///
-    /// const alloc = std.heap.page_allocator;
-    /// var ut = ColorPrint.init(alloc);
-    /// ut.set(.{FgColor.magenta});
-    /// ut.print("String");
-    ///
     pub fn magenta(self: *ColorPrint, str: []const u8) !void {
-        self.unsetAll();
-        try self.set(.{FgColor.magenta});
+        self.unsetEverything();
+        self.add(.{Color{ .foreground = ForegroundColor.magenta }});
         return try self.print(str);
     }
 
-    ///
     /// Prints a text with cyan foreground and default background color.
-    ///
-    /// This function is an alias for:
-    ///
-    /// const alloc = std.heap.page_allocator;
-    /// var ut = ColorPrint.init(alloc);
-    /// ut.set(.{FgColor.cyan});
-    /// ut.print("String");
-    ///
     pub fn cyan(self: *ColorPrint, str: []const u8) !void {
-        self.unsetAll();
-        try self.set(.{FgColor.cyan});
+        self.unsetEverything();
+        self.add(.{Color{ .foreground = ForegroundColor.cyan }});
         return try self.print(str);
     }
 
-    ///
     /// Prints a text with white foreground and default background color.
-    ///
-    /// This function is an alias for:
-    ///
-    /// const alloc = std.heap.page_allocator;
-    /// var ut = ColorPrint.init(alloc);
-    /// ut.set(.{FgColor.white});
-    /// ut.print("String");
-    ///
     pub fn white(self: *ColorPrint, str: []const u8) !void {
-        self.unsetAll();
-        try self.set(.{FgColor.white});
+        self.unsetEverything();
+        self.add(.{Color{ .foreground = ForegroundColor.white }});
         return try self.print(str);
     }
 
-    ///
     /// Prints a text with default foreground and default background color.
-    ///
-    /// This function is an alias for:
-    ///
-    /// const alloc = std.heap.page_allocator;
-    /// var ut = ColorPrint.init(alloc);
-    ///
-    /// ut.print("String");
-    ///
     pub fn default(self: *ColorPrint, str: []const u8) !void {
-        self.unsetAll();
+        self.unsetEverything();
         return try self.print(str);
     }
 
@@ -510,7 +395,7 @@ pub const ColorPrint = struct {
         var ut = ColorPrint.init(alloc);
         defer ut.deinit();
 
-        try ut.set(.{ FgColor.magenta, BgColor.white, Style.cross_out });
+        ut.add(.{ Color{ .foreground = ForegroundColor.magenta }, Color{ .background = BackgroundColor.white }, Style.cross_out });
 
         const actual = try ut.colorize("Colorize Me!");
 
@@ -519,13 +404,9 @@ pub const ColorPrint = struct {
 };
 
 test "Initialization of a ColorPrint struct" {
-    const expected = ColorPrint;
-
     const alloc = testing.allocator;
-    var ut = ColorPrint.init(alloc);
-    defer ut.deinit();
+    var actual = ColorPrint.init(alloc);
+    defer actual.deinit();
 
-    const actual = @TypeOf(ut);
-
-    try testing.expectEqual(expected, actual);
+    try testing.expectEqual(ColorPrint, @TypeOf(actual));
 }

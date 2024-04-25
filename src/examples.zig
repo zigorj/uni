@@ -7,7 +7,7 @@ pub fn main() !void {
     var ut = uniduni_t.ColorPrint.init(alloc);
     defer ut.deinit();
 
-    try ut.set(.{ uniduni_t.FgColor.green, uniduni_t.BgColor.magenta, uniduni_t.Style.italic });
+    ut.add(.{ uniduni_t.Color{ .foreground = uniduni_t.ForegroundColor.green }, uniduni_t.Color{ .background = uniduni_t.BackgroundColor.magenta }, uniduni_t.Style.italic });
     try ut.print("This is an italic green text on a magenta background\n");
 
     try ut.black("This is a black foreground text\n");
