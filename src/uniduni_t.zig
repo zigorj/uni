@@ -6,6 +6,11 @@ const testing = std.testing;
 
 const esc_char: []const u8 = "\x1b";
 
+const Error = error{
+    SameColorTypeError,
+    NotOrderedError,
+};
+
 /// Style's values.
 pub const Style = enum(u8) {
     reset,
@@ -265,16 +270,27 @@ pub const ColorPrint = struct {
     }
 
     fn parse(self: *ColorPrint) ![]const u8 {
-        // IMPLEMENT IN SMALL STEPS. parseColor + parseStyle (if not null).
-        const fmt: []const u8 = blk: {
-            if (std.mem.eql(u8, @tagName(self.color[0]), "foreground") and std.mem.eql(u8, @tagName(self.color[1]), "background")) {
-                if (self.style == null) break :blk try std.fmt.allocPrint(self.alloc.allocator(), "{s}[{d};{d}m", .{ esc_char, @intFromEnum(self.color[0].foreground), @intFromEnum(self.color[1].background) });
-                break :blk try std.fmt.allocPrint(self.alloc.allocator(), "{s}[{d};{d};{d}m", .{ esc_char, @intFromEnum(self.color[0].foreground), @intFromEnum(self.color[1].background), @intFromEnum(self.style.?) });
+        if (std.mem.eql(u8, @tagName(self.color[0]), @tagName(self.color[1]))) {
+            return error.SameColorTypeError;
+        }
+
+        if (std.mem.eql(u8, @tagName(self.color[0]), "background") or std.mem.eql(u8, @tagName(self.color[1]), "foreground")) {
+            return error.NotOrderedError;
+        }
+
+        const parsed_color: []const u8 = try std.fmt.allocPrint(self.alloc.allocator(), "{s}[{d};{d}", .{ esc_char, @intFromEnum(self.color[0].foreground), @intFromEnum(self.color[1].background) });
+        const parsed_style: ?[]const u8 = blk: {
+            if (self.style != null) {
+                break :blk try std.fmt.allocPrint(self.alloc.allocator(), "{d}", .{@intFromEnum(self.style.?)});
             }
-            // IMPLEMENT OTHER PATHS
-            break :blk "test";
+            break :blk null;
         };
-        return fmt;
+
+        if (parsed_style != null) {
+            return try std.fmt.allocPrint(self.alloc.allocator(), "{s};{s}m", .{ parsed_color, parsed_style.? });
+        }
+
+        return try std.fmt.allocPrint(self.alloc.allocator(), "{s}m", .{parsed_color});
     }
 
     test "Parse a string with colors" {
@@ -289,6 +305,50 @@ pub const ColorPrint = struct {
         const actual = try ut.parse();
 
         try testing.expectEqualStrings(expected, actual);
+    }
+
+    test "Parse a string with colors and a style" {
+        const expected: []const u8 = esc_char ++ "[30;41;8m";
+
+        const alloc = testing.allocator;
+        var ut = ColorPrint.init(alloc);
+        defer ut.deinit();
+
+        ut.add(.{ Color{ .foreground = ForegroundColor.black }, Color{ .background = BackgroundColor.red }, Style.conceal });
+
+        const actual = try ut.parse();
+
+        try testing.expectEqualStrings(expected, actual);
+    }
+
+    test "Parse a string with the foreground in the place of the background" {
+        const expected = error.NotOrderedError;
+
+        const alloc = testing.allocator;
+        var cp = ColorPrint.init(alloc);
+        defer cp.deinit();
+
+        cp.color[0] = Color{ .background = BackgroundColor.white };
+        cp.color[1] = Color{ .foreground = ForegroundColor.black };
+
+        const actual = cp.parse();
+
+        try testing.expectError(expected, actual);
+    }
+
+    test "Parse a string with the two color of the same type" {
+        const expected = error.SameColorTypeError;
+
+        const alloc = testing.allocator;
+        var cp = ColorPrint.init(alloc);
+        defer cp.deinit();
+
+        cp.color[0] = Color{ .foreground = ForegroundColor.white };
+        cp.color[1] = Color{ .foreground = ForegroundColor.red };
+
+        const actual = cp.parse();
+
+        try testing.expectError(expected, actual);
     }
 
     fn reset(self: *ColorPrint) ![]const u8 {
@@ -370,19 +430,8 @@ pub const ColorPrint = struct {
         return try self.print(str);
     }
 
-    ///
     /// Colorizes the string passed as str parameter, returning it with the
     /// color and styles that were setted to the ColorPrint struct fields.
-    ///
-    /// Example:
-    ///
-    /// const alloc = std.heap.page_allocator;
-    ///
-    /// var ut = ColorPrint.init(alloc);
-    /// try ut.set(.{ BgColor.red, FgColor.blue, Style.bold });
-    ///
-    /// const colorized_string = ut.colorize("This is a colorized string\n");
-    ///
     pub fn colorize(self: *ColorPrint, str: []const u8) ![]const u8 {
         const fmt = try std.fmt.allocPrint(self.alloc.allocator(), "{s}{s}{s}", .{ try self.parse(), str, try self.reset() });
         return fmt;
