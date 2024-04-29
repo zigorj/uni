@@ -118,5 +118,7 @@ pub fn main() !void {
 }
 ```
 ## TODO:
-- Use your own writer;
 - Format printing;
+- Use RGB with normal colors;
+- Print with more than one style;
+- Use your own writer;
