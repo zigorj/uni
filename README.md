@@ -18,7 +18,7 @@ pub fn main() !void {
   var cp = uniduni_t.ColorPrint.init(alloc);
   defer cp.deinit();
 
-  try cp.set(.{ uniduni_t.FgColor.green, uniduni_t.BgColor.magenta, uniduni_t.Style.italic });
+  cp.add(.{ uniduni_t.ForegroundColor.green, uniduni_t.BackgroundColor.magenta, uniduni_t.Style.italic });
   try cp.print("This is an italic green text on a magenta background\n");
 }
 ```
@@ -43,6 +43,21 @@ pub fn main() !void {
   try cp.default("This is your default text color\n");
 }
 ```
+### Print with RGB color:
+```
+const std = @import("std");
+const uniduni_t = @import("uniduni_t.zig");
+
+pub fn main() !void {
+  const alloc = std.heap.page_allocator;
+  var cp = uniduni_t.ColorPrint.init(alloc);
+  defer cp.deinit();
+
+  cp.add(.{ uniduni_t.Color{ .rgb = uniduni_t.RGB{ .r = 80, .g = 250, .b = 123, .t = uniduni_t.ColorType.foreground } }, uniduni_t.Color{ .rgb = uniduni_t.RGB{ .r = 40, .g = 42, .b = 54, .t = uniduni_t.ColorType.background } } });
+
+  try cp.print("Dracula\n");
+}
+```
 ### Reuse your setted colors:
 ```
 const std = @import("std");
@@ -53,7 +68,7 @@ pub fn main() !void {
   var cp = uniduni_t.ColorPrint.init(alloc);
   defer cp.deinit();
 
-  try cp.set(.{uniduni_t.FgColor.red});
+  cp.add(.{uniduni_t.Color{ .foreground = uniduni_t.ForegroundColor.red }});
   try cp.print("This is a red text\n");
   try cp.print("This is also a red text\n");
 }
@@ -68,12 +83,40 @@ pub fn main() !void {
   var cp = uniduni_t.ColorPrint.init(alloc);
   defer cp.deinit();
 
-  try cp.set(.{ uniduni_t.FgColor.green, uniduni_t.BgColor.magenta, uniduni_t.Style.italic });
+    cp.add(.{ uniduni_t.Color{ .foreground = uniduni_t.ForegroundColor.green }, uniduni_t.Color{ .background = uniduni_t.BackgroundColor.magenta }, uniduni_t.Style.italic });
 
   const my_colorized_string: []const u8 = try cp.colorize("This is my colorized string\n");
+
+  const stdout = std.io.getStdOut().writer();
+  try stdout.print("{}\n", .{my_colorized_string});
+}
+```
+### Use uniduni_t on your existing code:
+```
+const std = @import("std");
+const uniduni_t = @import("uniduni_t.zig");
+
+pub fn main() !void {
+  const alloc = std.heap.page_allocator;
+  var cp = uniduni_t.ColorPrint.init(alloc);
+  defer cp.deinit();
+
+  // Your existing code
+
+  cp.add(.{uniduni_t.Color{ .foreground = uniduni_t.ForegroundColor.red }});
+  try cp.set();
+
+  // Your existing code printing something in red
+  const stdout = std.io.getStdOut().writer();
+  try stdout.print("This is your code printing something in red\n", .{});
+
+  // Don't forget to unset ColorPrint to default color
+  try cp.unset();
+
+  // Your code printing something in default color
+  try stdout.print("This is your code printing something in default color\n", .{});
 }
 ```
 ## TODO:
-- RGB colors;
 - Use your own writer;
 - Format printing;
