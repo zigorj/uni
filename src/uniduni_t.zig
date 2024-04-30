@@ -1,6 +1,3 @@
-// - Format printing
-// - writer
-// - fix RGB + normal color parsing: maybe parse each piece individualy? foreground(color) + background(color) + style ++ "m"?
 const std = @import("std");
 const testing = std.testing;
 
@@ -13,9 +10,10 @@ const testing = std.testing;
 /// It is used as the prefix for ANSI escape codes.
 const esc_char: []const u8 = "\x1b";
 
-/// `Uniduni_t_Error` is an error union representing errors related to the `Uniduni_t` type.
+/// `Uniduni_t_Error` is an error union representing errors related to the `Uniduni_t` library.
 const Uniduni_t_Error = error{
-    ColorTypeError,
+    ColorError,
+    StyleError,
 };
 
 /// `Style` is an enumeration representing various text styles for formatting.
@@ -144,8 +142,8 @@ pub const ColorPrint = struct {
     /// An array containing foreground and background colors.
     color: [2]Color,
 
-    /// Optional text styling information.
-    style: ?Style,
+    /// A StaticField representing text styling information.
+    style: std.bit_set.StaticBitSet(@typeInfo(Style).Enum.fields.len),
 
     /// Initializes an instance of the `ColorPrint` struct.
     ///
@@ -155,14 +153,10 @@ pub const ColorPrint = struct {
     /// Returns:
     ///   - A new `ColorPrint` struct instance initialized with default values.
     pub fn init(alloc: std.mem.Allocator) ColorPrint {
-        return .{
-            .alloc = std.heap.ArenaAllocator.init(alloc),
-            .color = [2]Color{
-                Color{ .foreground = ForegroundColor.default },
-                Color{ .background = BackgroundColor.default },
-            },
-            .style = null, // Style is set to null by default.
-        };
+        return .{ .alloc = std.heap.ArenaAllocator.init(alloc), .color = [2]Color{
+            Color{ .foreground = ForegroundColor.default },
+            Color{ .background = BackgroundColor.default },
+        }, .style = std.bit_set.StaticBitSet(@typeInfo(Style).Enum.fields.len).initEmpty() };
     }
 
     /// Deinitializes an instance of the `ColorPrint` struct, releasing any allocated resources.
@@ -222,7 +216,7 @@ pub const ColorPrint = struct {
                     }
                 },
                 // Handle style attribute.
-                Style => self.style = attribute,
+                Style => self.style.set(@intFromEnum(attribute)),
                 // Raise a compile-time error for unaccepted parameters.
                 else => @compileError("Unaccepted parameter."),
             }
@@ -232,14 +226,16 @@ pub const ColorPrint = struct {
     test "Add foreground and background color and a style" {
         const alloc = testing.allocator;
 
-        const expected = ColorPrint{
+        var expected = ColorPrint{
             .alloc = std.heap.ArenaAllocator.init(alloc),
             .color = [2]Color{
                 Color{ .foreground = ForegroundColor.cyan },
                 Color{ .background = BackgroundColor.yellow },
             },
-            .style = Style.bold,
+            .style = std.bit_set.StaticBitSet(@typeInfo(Style).Enum.fields.len).initEmpty(),
         };
+
+        expected.style.set(@intFromEnum(Style.bold));
 
         var actual = ColorPrint.init(alloc);
         defer actual.deinit();
@@ -265,7 +261,7 @@ pub const ColorPrint = struct {
             Color{ .foreground = ForegroundColor.default },
             Color{ .background = BackgroundColor.default },
         };
-        self.style = null;
+        self.style = std.bit_set.StaticBitSet(@typeInfo(Style).Enum.fields.len).initEmpty();
     }
 
     test "Unset everything" {
@@ -277,17 +273,14 @@ pub const ColorPrint = struct {
                 Color{ .foreground = ForegroundColor.default },
                 Color{ .background = BackgroundColor.default },
             },
-            .style = null,
+            .style = std.bit_set.StaticBitSet(@typeInfo(Style).Enum.fields.len).initEmpty(),
         };
 
         var actual = ColorPrint.init(alloc);
         defer actual.deinit();
 
-        actual.add(.{
-            Color{ .foreground = ForegroundColor.green },
-            Color{ .background = BackgroundColor.cyan },
-            Style.bold,
-        });
+        actual.add(.{ Color{ .foreground = ForegroundColor.green }, Color{ .background = BackgroundColor.cyan }, Style.italic });
+
         actual.defaultEverything();
 
         try testing.expectEqual(expected, actual);
@@ -313,7 +306,7 @@ pub const ColorPrint = struct {
                 Color{ .foreground = ForegroundColor.default },
                 Color{ .background = BackgroundColor.default },
             },
-            .style = null,
+            .style = std.bit_set.StaticBitSet(@typeInfo(Style).Enum.fields.len).initEmpty(),
         };
 
         var actual = ColorPrint.init(alloc);
@@ -346,7 +339,7 @@ pub const ColorPrint = struct {
                 Color{ .foreground = ForegroundColor.default },
                 Color{ .background = BackgroundColor.default },
             },
-            .style = null,
+            .style = std.bit_set.StaticBitSet(@typeInfo(Style).Enum.fields.len).initEmpty(),
         };
 
         var actual = ColorPrint.init(alloc);
@@ -366,19 +359,19 @@ pub const ColorPrint = struct {
     /// Parameters:
     ///   - self: A pointer to the `ColorPrint` instance for which the text style will be unset.
     pub fn unsetStyle(self: *ColorPrint) void {
-        self.style = null;
+        self.style = std.bit_set.StaticBitSet(@typeInfo(Style).Enum.fields.len).initEmpty();
     }
 
     test "Unset style" {
         const alloc = testing.allocator;
 
-        const expected = ColorPrint{
+        var expected = ColorPrint{
             .alloc = std.heap.ArenaAllocator.init(alloc),
             .color = [2]Color{
                 Color{ .foreground = ForegroundColor.default },
                 Color{ .background = BackgroundColor.default },
             },
-            .style = null,
+            .style = std.bit_set.StaticBitSet(@typeInfo(Style).Enum.fields.len).initEmpty(),
         };
 
         var actual = ColorPrint.init(alloc);
@@ -405,17 +398,9 @@ pub const ColorPrint = struct {
     ///   - This method uses ANSI escape codes to apply color and style settings to the printed string.
     pub fn print(self: *ColorPrint, str: []const u8) !void {
         const stdout = std.io.getStdOut().writer();
-        const f_tag = @tagName(self.color[0]);
-        const b_tag = @tagName(self.color[1]);
 
-        // Check if both foreground and background colors are RGB.
-        if (std.mem.eql(u8, f_tag, "rgb") and std.mem.eql(u8, b_tag, "rgb")) {
-            // Parse RGB colors.
-            try stdout.print("{s}{s}{s}", .{ try self.parseRGB(), str, try self.reset() });
-        } else {
-            // Parse colors.
-            try stdout.print("{s}{s}{s}", .{ try self.parse(), str, try self.reset() });
-        }
+        // Parse colors.
+        try stdout.print("{s}{s}{s}", .{ try self.parse(), str, try self.reset() });
     }
 
     /// Parses the ANSI escape codes for color and style settings based on the `ColorPrint` configuration.
@@ -428,29 +413,43 @@ pub const ColorPrint = struct {
     ///   - A string containing the ANSI escape codes for the configured color and style settings.
     ///   - An error indicating a color type mismatch if the foreground or background color type is incorrect.
     fn parse(self: *ColorPrint) ![]const u8 {
-        // Check if the color types are correct.
-        if (!std.mem.eql(u8, @tagName(self.color[0]), "foreground") or !std.mem.eql(u8, @tagName(self.color[1]), "background")) {
-            return error.ColorTypeError;
-        }
-
         // Construct the ANSI escape sequence for the configured foreground and background colors.
-        const parsed_color: []const u8 = try std.fmt.allocPrint(self.alloc.allocator(), "{s}[{d};{d}", .{ esc_char, @intFromEnum(self.color[0].foreground), @intFromEnum(self.color[1].background) });
+        const parsed_color: ?[]const u8 = blk: {
+            var foreground: ?[]const u8 = null;
+            var background: ?[]const u8 = null;
 
-        // Construct the ANSI escape sequence for the configured text style (if applicable).
-        const parsed_style: ?[]const u8 = blk: {
-            if (self.style != null) {
-                break :blk try std.fmt.allocPrint(self.alloc.allocator(), "{d}", .{@intFromEnum(self.style.?)});
+            for (self.color) |color| {
+                if (std.mem.eql(u8, @tagName(color), "foreground")) {
+                    foreground = try std.fmt.allocPrint(self.alloc.allocator(), "{s}[{d}", .{ esc_char, @intFromEnum(color.foreground) });
+                }
+                if (std.mem.eql(u8, @tagName(color), "background")) background = try std.fmt.allocPrint(self.alloc.allocator(), ";{d}", .{@intFromEnum(color.background)});
+                if (std.mem.eql(u8, @tagName(color), "rgb")) {
+                    if (std.mem.eql(u8, @tagName(color.rgb.t), "foreground")) foreground = try std.fmt.allocPrint(self.alloc.allocator(), "{s}[{d};{d};{d};{d};{d}", .{ esc_char, @intFromEnum(ForegroundColor.rgb), 2, color.rgb.r, color.rgb.g, color.rgb.b });
+                    if (std.mem.eql(u8, @tagName(color.rgb.t), "background")) background = try std.fmt.allocPrint(self.alloc.allocator(), ";{d};{d};{d};{d};{d}", .{ @intFromEnum(BackgroundColor.rgb), 2, color.rgb.r, color.rgb.g, color.rgb.b });
+                }
             }
-            break :blk null;
+
+            if (foreground == null or background == null) break :blk null;
+
+            break :blk try std.fmt.allocPrint(self.alloc.allocator(), "{s}{s}", .{ foreground.?, background.? });
         };
 
-        // Combine the color and style ANSI escape sequences (if applicable) to form the final ANSI escape codes.
-        if (parsed_style != null) {
-            return try std.fmt.allocPrint(self.alloc.allocator(), "{s};{s}m", .{ parsed_color, parsed_style.? });
-        }
+        if (parsed_color == null) return error.ColorError;
 
-        // If no text style is specified, return the ANSI escape sequence for the configured colors only.
-        return try std.fmt.allocPrint(self.alloc.allocator(), "{s}m", .{parsed_color});
+        // Construct the ANSI escape sequence for the configured text style.
+        const parsed_style: []const u8 = blk: {
+            var all_styles_bits = self.style.iterator(.{});
+            var p_styles: []const u8 = "";
+
+            while (all_styles_bits.next()) |style_bit| {
+                p_styles = try std.fmt.allocPrint(self.alloc.allocator(), "{s};{d}", .{ p_styles, style_bit });
+            }
+
+            break :blk try std.fmt.allocPrint(self.alloc.allocator(), "{s}m", .{p_styles});
+        };
+
+        // Combine the color and style ANSI escape sequences to form the final ANSI escape codes.
+        return try std.fmt.allocPrint(self.alloc.allocator(), "{s}{s}", .{ parsed_color.?, parsed_style });
     }
 
     test "Parse a string with colors" {
@@ -467,37 +466,22 @@ pub const ColorPrint = struct {
         try testing.expectEqualStrings(expected, actual);
     }
 
-    test "Parse a string with colors and a style" {
-        const expected: []const u8 = esc_char ++ "[30;41;8m";
+    test "Parse a string with colors and 4 styles" {
+        const expected: []const u8 = esc_char ++ "[30;41;2;4;7;9m";
 
         const alloc = testing.allocator;
         var cp = ColorPrint.init(alloc);
         defer cp.deinit();
 
-        cp.add(.{ Color{ .foreground = ForegroundColor.black }, Color{ .background = BackgroundColor.red }, Style.conceal });
+        cp.add(.{ Color{ .foreground = ForegroundColor.black }, Color{ .background = BackgroundColor.red }, Style.underline, Style.cross_out, Style.reverse_video, Style.faint });
 
         const actual = try cp.parse();
 
         try testing.expectEqualStrings(expected, actual);
     }
 
-    test "Parse a string with the foreground in the place of the background" {
-        const expected = error.ColorTypeError;
-
-        const alloc = testing.allocator;
-        var cp = ColorPrint.init(alloc);
-        defer cp.deinit();
-
-        cp.color[0] = Color{ .background = BackgroundColor.white };
-        cp.color[1] = Color{ .foreground = ForegroundColor.black };
-
-        const actual = cp.parse();
-
-        try testing.expectError(expected, actual);
-    }
-
     test "Parse a string with the two color of the same type" {
-        const expected = error.ColorTypeError;
+        const expected = error.ColorError;
 
         const alloc = testing.allocator;
         var cp = ColorPrint.init(alloc);
@@ -511,77 +495,6 @@ pub const ColorPrint = struct {
         try testing.expectError(expected, actual);
     }
 
-    test "Parse a string with the RGB and normal color" {
-        const expected = error.ColorTypeError;
-
-        const alloc = testing.allocator;
-        var cp = ColorPrint.init(alloc);
-        defer cp.deinit();
-
-        cp.color[0] = Color{ .foreground = ForegroundColor.white };
-        cp.color[1] = Color{ .rgb = RGB{ .r = 255, .g = 255, .b = 255, .t = ColorType.background } };
-
-        const actual = cp.parse();
-
-        try testing.expectError(expected, actual);
-    }
-
-    /// Parses the ANSI escape codes for RGB color and style settings based on the `ColorPrint` configuration.
-    ///
-    /// This method parses the ANSI escape codes for RGB foreground and background colors, along with any specified
-    /// text styling, according to the current configuration of the `ColorPrint` instance. It constructs the ANSI
-    /// escape sequences required to apply the configured RGB colors and text styling.
-    ///
-    /// Returns:
-    ///   - A string containing the ANSI escape codes for the configured RGB colors and style settings.
-    ///   - An error indicating a color type mismatch or RGB color type mismatch if the configured color types are incorrect.
-    fn parseRGB(self: *ColorPrint) ![]const u8 {
-        // Check if both color types match and are RGB.
-        if (!std.mem.eql(u8, @tagName(self.color[0]), @tagName((self.color[1])))) {
-            return error.ColorTypeError;
-        }
-
-        // Check if the the order of the color types are correct.
-        if (!std.mem.eql(u8, @tagName(self.color[0].rgb.t), "foreground") or !std.mem.eql(u8, @tagName(self.color[1].rgb.t), "background")) {
-            return error.ColorTypeError;
-        }
-
-        // Extract RGB components for foreground and background colors.
-        const foreground = self.color[0].rgb;
-        const background = self.color[1].rgb;
-
-        // Construct the ANSI escape sequence for the configured RGB foreground and background colors.
-        const parsed_color: []const u8 = try std.fmt.allocPrint(self.alloc.allocator(), "{s}[{d};{d};{d};{d};{d};{d};{d};{d};{d};{d}", .{
-            esc_char,
-            @intFromEnum(ForegroundColor.rgb),
-            2,
-            foreground.r,
-            foreground.g,
-            foreground.b,
-            @intFromEnum(BackgroundColor.rgb),
-            2,
-            background.r,
-            background.g,
-            background.b,
-        });
-
-        // Construct the ANSI escape sequence for the configured text style (if applicable).
-        const parsed_style: ?[]const u8 = blk: {
-            if (self.style != null) {
-                break :blk try std.fmt.allocPrint(self.alloc.allocator(), "{d}", .{@intFromEnum(self.style.?)});
-            }
-            break :blk null;
-        };
-
-        // Combine the color and style ANSI escape sequences (if applicable) to form the final ANSI escape codes.
-        if (parsed_style != null) {
-            return try std.fmt.allocPrint(self.alloc.allocator(), "{s};{s}m", .{ parsed_color, parsed_style.? });
-        }
-
-        // If no text style is specified, return the ANSI escape sequence for the configured colors only.
-        return try std.fmt.allocPrint(self.alloc.allocator(), "{s}m", .{parsed_color});
-    }
-
     test "Parse a string with RGB colors" {
         const expected: []const u8 = esc_char ++ "[38;2;255;255;255;48;2;0;0;0m";
 
@@ -591,42 +504,27 @@ pub const ColorPrint = struct {
 
         cp.add(.{ Color{ .rgb = RGB{ .r = 255, .g = 255, .b = 255, .t = ColorType.foreground } }, Color{ .rgb = RGB{ .r = 0, .g = 0, .b = 0, .t = ColorType.background } } });
 
-        const actual = try cp.parseRGB();
+        const actual = try cp.parse();
 
         try testing.expectEqualStrings(expected, actual);
     }
 
-    test "Parse a string with RGB colors and a style" {
-        const expected: []const u8 = esc_char ++ "[38;2;255;255;255;48;2;0;0;0;8m";
+    test "Parse a string with RGB colors and 3 styles" {
+        const expected: []const u8 = esc_char ++ "[38;2;255;255;255;48;2;0;0;0;1;3;6m";
 
         const alloc = testing.allocator;
         var cp = ColorPrint.init(alloc);
         defer cp.deinit();
 
-        cp.add(.{ Color{ .rgb = RGB{ .r = 255, .g = 255, .b = 255, .t = ColorType.foreground } }, Color{ .rgb = RGB{ .r = 0, .g = 0, .b = 0, .t = ColorType.background } }, Style.conceal });
+        cp.add(.{ Color{ .rgb = RGB{ .r = 255, .g = 255, .b = 255, .t = ColorType.foreground } }, Color{ .rgb = RGB{ .r = 0, .g = 0, .b = 0, .t = ColorType.background } }, Style.italic, Style.bold, Style.rapid_blink });
 
-        const actual = try cp.parseRGB();
+        const actual = try cp.parse();
 
         try testing.expectEqualStrings(expected, actual);
-    }
-
-    test "Parse a string with the foreground in the place of the background (RGB)" {
-        const expected = error.ColorTypeError;
-
-        const alloc = testing.allocator;
-        var cp = ColorPrint.init(alloc);
-        defer cp.deinit();
-
-        cp.color[0] = Color{ .rgb = RGB{ .r = 127, .g = 187, .b = 179, .t = ColorType.background } };
-        cp.color[1] = Color{ .rgb = RGB{ .r = 167, .g = 192, .b = 128, .t = ColorType.foreground } };
-
-        const actual = cp.parseRGB();
-
-        try testing.expectError(expected, actual);
     }
 
     test "Parse a string with the two color of the same type (RGB)" {
-        const expected = error.ColorTypeError;
+        const expected = error.ColorError;
 
         const alloc = testing.allocator;
         var cp = ColorPrint.init(alloc);
@@ -635,7 +533,7 @@ pub const ColorPrint = struct {
         cp.color[0] = Color{ .rgb = RGB{ .r = 127, .g = 187, .b = 179, .t = ColorType.foreground } };
         cp.color[1] = Color{ .rgb = RGB{ .r = 167, .g = 192, .b = 128, .t = ColorType.foreground } };
 
-        const actual = cp.parseRGB();
+        const actual = cp.parse();
 
         try testing.expectError(expected, actual);
     }
