@@ -1,11 +1,12 @@
 const std = @import("std");
-const uniduni_t = @import("uniduni_t.zig");
+
+const Uniduni_t = @import("uniduni_t.zig").Uniduni_t;
+const attr = @import("attributes.zig");
+const Color = attr.Color;
+const Style = attr.Style;
 
 pub fn main() !void {
-    const alloc = std.heap.page_allocator;
-    var cp = uniduni_t.ColorPrint.init(alloc);
-    defer cp.deinit();
-
-    cp.add(.{ uniduni_t.Color{ .foreground = uniduni_t.ForegroundColor.green }, uniduni_t.Color{ .background = uniduni_t.BackgroundColor.magenta }, uniduni_t.Style.italic });
-    try cp.print("This is an italic green text on a magenta background\n");
+    const stdout = std.io.getStdOut().writer();
+    const warn = Uniduni_t.init().add(.{ Color.Foreground.red, Color.Background.black, Style.bold });
+    try stdout.print("{s}: This is a warning!\n", .{warn.format("WARNING")});
 }
