@@ -62,6 +62,6 @@ pub fn main() !void {
 ```
 ```
 ## TODO:
-- Add bright colors
-- Add hex colors
+- Add RGB support
+- Add hex support
 - Detect TTY

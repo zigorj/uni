@@ -198,8 +198,152 @@ pub const Uniduni_t = struct {
         try testing.expectEqualStrings(expected.start, actual.start);
     }
 
+    pub inline fn brightBlack(self: Uniduni_t) Uniduni_t {
+        const parsed_code = parse(@field(Color.Foreground, "bright_black"));
+        comptime return .{
+            .level = self.level,
+            .start = self.start ++ parsed_code,
+        };
+    }
+
+    test "Bright black color function" {
+        const expected = Uniduni_t{
+            .level = Color.Level.truecolor,
+            .start = "\x1b[90m",
+        };
+        const actual = Uniduni_t.init().brightBlack();
+
+        try testing.expectEqualStrings(expected.start, actual.start);
+    }
+
+    pub inline fn brightRed(self: Uniduni_t) Uniduni_t {
+        const parsed_code = parse(@field(Color.Foreground, "bright_red"));
+        comptime return .{
+            .level = self.level,
+            .start = self.start ++ parsed_code,
+        };
+    }
+
+    test "Bright red color function" {
+        const expected = Uniduni_t{
+            .level = Color.Level.truecolor,
+            .start = "\x1b[91m",
+        };
+        const actual = Uniduni_t.init().brightRed();
+
+        try testing.expectEqualStrings(expected.start, actual.start);
+    }
+
+    pub inline fn brightGreen(self: Uniduni_t) Uniduni_t {
+        const parsed_code = parse(@field(Color.Foreground, "bright_green"));
+        comptime return .{
+            .level = self.level,
+            .start = self.start ++ parsed_code,
+        };
+    }
+
+    test "Bright green color function" {
+        const expected = Uniduni_t{
+            .level = Color.Level.truecolor,
+            .start = "\x1b[92m",
+        };
+        const actual = Uniduni_t.init().brightGreen();
+
+        try testing.expectEqualStrings(expected.start, actual.start);
+    }
+
+    pub inline fn brightYellow(self: Uniduni_t) Uniduni_t {
+        const parsed_code = parse(@field(Color.Foreground, "bright_yellow"));
+        comptime return .{
+            .level = self.level,
+            .start = self.start ++ parsed_code,
+        };
+    }
+
+    test "Bright yellow color function" {
+        const expected = Uniduni_t{
+            .level = Color.Level.truecolor,
+            .start = "\x1b[93m",
+        };
+        const actual = Uniduni_t.init().brightYellow();
+
+        try testing.expectEqualStrings(expected.start, actual.start);
+    }
+
+    pub inline fn brightBlue(self: Uniduni_t) Uniduni_t {
+        const parsed_code = parse(@field(Color.Foreground, "bright_blue"));
+        comptime return .{
+            .level = self.level,
+            .start = self.start ++ parsed_code,
+        };
+    }
+
+    test "Bright blue color function" {
+        const expected = Uniduni_t{
+            .level = Color.Level.truecolor,
+            .start = "\x1b[94m",
+        };
+        const actual = Uniduni_t.init().brightBlue();
+
+        try testing.expectEqualStrings(expected.start, actual.start);
+    }
+
+    pub inline fn brightMagenta(self: Uniduni_t) Uniduni_t {
+        const parsed_code = parse(@field(Color.Foreground, "bright_magenta"));
+        comptime return .{
+            .level = self.level,
+            .start = self.start ++ parsed_code,
+        };
+    }
+
+    test "Bright magenta color function" {
+        const expected = Uniduni_t{
+            .level = Color.Level.truecolor,
+            .start = "\x1b[95m",
+        };
+        const actual = Uniduni_t.init().brightMagenta();
+
+        try testing.expectEqualStrings(expected.start, actual.start);
+    }
+
+    pub inline fn brightCyan(self: Uniduni_t) Uniduni_t {
+        const parsed_code = parse(@field(Color.Foreground, "bright_cyan"));
+        comptime return .{
+            .level = self.level,
+            .start = self.start ++ parsed_code,
+        };
+    }
+
+    test "Bright cyan color function" {
+        const expected = Uniduni_t{
+            .level = Color.Level.truecolor,
+            .start = "\x1b[96m",
+        };
+        const actual = Uniduni_t.init().brightCyan();
+
+        try testing.expectEqualStrings(expected.start, actual.start);
+    }
+
+    pub inline fn brightWhite(self: Uniduni_t) Uniduni_t {
+        const parsed_code = parse(@field(Color.Foreground, "bright_white"));
+        comptime return .{
+            .level = self.level,
+            .start = self.start ++ parsed_code,
+        };
+    }
+
+    test "Bright white color function" {
+        const expected = Uniduni_t{
+            .level = Color.Level.truecolor,
+            .start = "\x1b[97m",
+        };
+        const actual = Uniduni_t.init().brightWhite();
+
+        try testing.expectEqualStrings(expected.start, actual.start);
+    }
+
     pub inline fn bgBlack(self: Uniduni_t) Uniduni_t {
-        const parsed_code = parse(@field(Color.Background, @src().fn_name));
+        const parsed_code = parse(@field(Color.Background, "black"));
         comptime return .{
             .level = self.level,
             .start = self.start ++ parsed_code,
@@ -217,7 +361,7 @@ pub const Uniduni_t = struct {
     }
 
     pub inline fn bgRed(self: Uniduni_t) Uniduni_t {
-        const parsed_code = parse(@field(Color.Background, @src().fn_name));
+        const parsed_code = parse(@field(Color.Background, "red"));
         comptime return .{
             .level = self.level,
             .start = self.start ++ parsed_code,
@@ -235,7 +379,7 @@ pub const Uniduni_t = struct {
     }
 
     pub inline fn bgGreen(self: Uniduni_t) Uniduni_t {
-        const parsed_code = parse(@field(Color.Background, @src().fn_name));
+        const parsed_code = parse(@field(Color.Background, "green"));
         comptime return .{
             .level = self.level,
             .start = self.start ++ parsed_code,
@@ -253,7 +397,7 @@ pub const Uniduni_t = struct {
     }
 
     pub inline fn bgYellow(self: Uniduni_t) Uniduni_t {
-        const parsed_code = parse(@field(Color.Background, @src().fn_name));
+        const parsed_code = parse(@field(Color.Background, "yellow"));
         comptime return .{
             .level = self.level,
             .start = self.start ++ parsed_code,
@@ -271,7 +415,7 @@ pub const Uniduni_t = struct {
     }
 
     pub inline fn bgBlue(self: Uniduni_t) Uniduni_t {
-        const parsed_code = parse(@field(Color.Background, @src().fn_name));
+        const parsed_code = parse(@field(Color.Background, "blue"));
         comptime return .{
             .level = self.level,
             .start = self.start ++ parsed_code,
@@ -289,7 +433,7 @@ pub const Uniduni_t = struct {
     }
 
     pub inline fn bgMagenta(self: Uniduni_t) Uniduni_t {
-        const parsed_code = parse(@field(Color.Background, @src().fn_name));
+        const parsed_code = parse(@field(Color.Background, "magenta"));
         comptime return .{
             .level = self.level,
             .start = self.start ++ parsed_code,
@@ -307,7 +451,7 @@ pub const Uniduni_t = struct {
     }
 
     pub inline fn bgCyan(self: Uniduni_t) Uniduni_t {
-        const parsed_code = parse(@field(Color.Background, @src().fn_name));
+        const parsed_code = parse(@field(Color.Background, "cyan"));
         comptime return .{
             .level = self.level,
             .start = self.start ++ parsed_code,
@@ -325,7 +469,7 @@ pub const Uniduni_t = struct {
     }
 
     pub inline fn bgWhite(self: Uniduni_t) Uniduni_t {
-        const parsed_code = parse(@field(Color.Background, @src().fn_name));
+        const parsed_code = parse(@field(Color.Background, "white"));
         comptime return .{
             .level = self.level,
             .start = self.start ++ parsed_code,
@@ -338,6 +482,150 @@ pub const Uniduni_t = struct {
             .start = "\x1b[47m",
         };
         const actual = Uniduni_t.init().bgWhite();
+
+        try testing.expectEqualStrings(expected.start, actual.start);
+    }
+
+    pub inline fn bgBrightBlack(self: Uniduni_t) Uniduni_t {
+        const parsed_code = parse(@field(Color.Background, "bright_black"));
+        comptime return .{
+            .level = self.level,
+            .start = self.start ++ parsed_code,
+        };
+    }
+
+    test "Bright black background color function" {
+        const expected = Uniduni_t{
+            .level = Color.Level.truecolor,
+            .start = "\x1b[100m",
+        };
+        const actual = Uniduni_t.init().bgBrightBlack();
+
+        try testing.expectEqualStrings(expected.start, actual.start);
+    }
+
+    pub inline fn bgBrightRed(self: Uniduni_t) Uniduni_t {
+        const parsed_code = parse(@field(Color.Background, "bright_red"));
+        comptime return .{
+            .level = self.level,
+            .start = self.start ++ parsed_code,
+        };
+    }
+
+    test "Bright red background color function" {
+        const expected = Uniduni_t{
+            .level = Color.Level.truecolor,
+            .start = "\x1b[101m",
+        };
+        const actual = Uniduni_t.init().bgBrightRed();
+
+        try testing.expectEqualStrings(expected.start, actual.start);
+    }
+
+    pub inline fn bgBrightGreen(self: Uniduni_t) Uniduni_t {
+        const parsed_code = parse(@field(Color.Background, "bright_green"));
+        comptime return .{
+            .level = self.level,
+            .start = self.start ++ parsed_code,
+        };
+    }
+
+    test "Bright green background color function" {
+        const expected = Uniduni_t{
+            .level = Color.Level.truecolor,
+            .start = "\x1b[102m",
+        };
+        const actual = Uniduni_t.init().bgBrightGreen();
+
+        try testing.expectEqualStrings(expected.start, actual.start);
+    }
+
+    pub inline fn bgBrightYellow(self: Uniduni_t) Uniduni_t {
+        const parsed_code = parse(@field(Color.Background, "bright_yellow"));
+        comptime return .{
+            .level = self.level,
+            .start = self.start ++ parsed_code,
+        };
+    }
+
+    test "Bright yellow background color function" {
+        const expected = Uniduni_t{
+            .level = Color.Level.truecolor,
+            .start = "\x1b[103m",
+        };
+        const actual = Uniduni_t.init().bgBrightYellow();
+
+        try testing.expectEqualStrings(expected.start, actual.start);
+    }
+
+    pub inline fn bgBrightBlue(self: Uniduni_t) Uniduni_t {
+        const parsed_code = parse(@field(Color.Background, "bright_blue"));
+        comptime return .{
+            .level = self.level,
+            .start = self.start ++ parsed_code,
+        };
+    }
+
+    test "Bright blue background color function" {
+        const expected = Uniduni_t{
+            .level = Color.Level.truecolor,
+            .start = "\x1b[104m",
+        };
+        const actual = Uniduni_t.init().bgBrightBlue();
+
+        try testing.expectEqualStrings(expected.start, actual.start);
+    }
+
+    pub inline fn bgBrightMagenta(self: Uniduni_t) Uniduni_t {
+        const parsed_code = parse(@field(Color.Background, "bright_magenta"));
+        comptime return .{
+            .level = self.level,
+            .start = self.start ++ parsed_code,
+        };
+    }
+
+    test "Bright magenta background color function" {
+        const expected = Uniduni_t{
+            .level = Color.Level.truecolor,
+            .start = "\x1b[105m",
+        };
+        const actual = Uniduni_t.init().bgBrightMagenta();
+
+        try testing.expectEqualStrings(expected.start, actual.start);
+    }
+
+    pub inline fn bgBrightCyan(self: Uniduni_t) Uniduni_t {
+        const parsed_code = parse(@field(Color.Background, "bright_cyan"));
+        comptime return .{
+            .level = self.level,
+            .start = self.start ++ parsed_code,
+        };
+    }
+
+    test "Bright Cyan background color function" {
+        const expected = Uniduni_t{
+            .level = Color.Level.truecolor,
+            .start = "\x1b[106m",
+        };
+        const actual = Uniduni_t.init().bgBrightCyan();
+
+        try testing.expectEqualStrings(expected.start, actual.start);
+    }
+
+    pub inline fn bgBrightWhite(self: Uniduni_t) Uniduni_t {
+        const parsed_code = parse(@field(Color.Background, "bright_white"));
+        comptime return .{
+            .level = self.level,
+            .start = self.start ++ parsed_code,
+        };
+    }
+
+    test "Bright white background color function" {
+        const expected = Uniduni_t{
+            .level = Color.Level.truecolor,
+            .start = "\x1b[107m",
+        };
+        const actual = Uniduni_t.init().bgBrightWhite();
 
         try testing.expectEqualStrings(expected.start, actual.start);
     }
