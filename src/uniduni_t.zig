@@ -4,6 +4,7 @@ const testing = std.testing;
 const attr = @import("attributes.zig");
 const Style = attr.Style;
 const Color = attr.Color;
+
 pub const Uniduni_t = struct {
     level: Color.Level,
     start: []const u8 = "",
@@ -193,6 +194,186 @@ pub const Uniduni_t = struct {
             .start = "\x1b[37m",
         };
         const actual = Uniduni_t.init().white();
+
+        try testing.expectEqualStrings(expected.start, actual.start);
+    }
+
+    pub inline fn bold(self: Uniduni_t) Uniduni_t {
+        const parsed_code = parse(@field(Style, @src().fn_name));
+        comptime return .{
+            .level = self.level,
+            .start = self.start ++ parsed_code,
+        };
+    }
+
+    test "Bold function" {
+        const expected = Uniduni_t{
+            .level = Color.Level.truecolor,
+            .start = "\x1b[1m",
+        };
+        const actual = Uniduni_t.init().bold();
+
+        try testing.expectEqualStrings(expected.start, actual.start);
+    }
+
+    pub inline fn faint(self: Uniduni_t) Uniduni_t {
+        const parsed_code = parse(@field(Style, @src().fn_name));
+        comptime return .{
+            .level = self.level,
+            .start = self.start ++ parsed_code,
+        };
+    }
+
+    test "Faint function" {
+        const expected = Uniduni_t{
+            .level = Color.Level.truecolor,
+            .start = "\x1b[2m",
+        };
+        const actual = Uniduni_t.init().faint();
+
+        try testing.expectEqualStrings(expected.start, actual.start);
+    }
+
+    pub inline fn italic(self: Uniduni_t) Uniduni_t {
+        const parsed_code = parse(@field(Style, @src().fn_name));
+        comptime return .{
+            .level = self.level,
+            .start = self.start ++ parsed_code,
+        };
+    }
+
+    test "Italic function" {
+        const expected = Uniduni_t{
+            .level = Color.Level.truecolor,
+            .start = "\x1b[3m",
+        };
+        const actual = Uniduni_t.init().italic();
+
+        try testing.expectEqualStrings(expected.start, actual.start);
+    }
+
+    pub inline fn underline(self: Uniduni_t) Uniduni_t {
+        const parsed_code = parse(@field(Style, @src().fn_name));
+        comptime return .{
+            .level = self.level,
+            .start = self.start ++ parsed_code,
+        };
+    }
+
+    test "Underline function" {
+        const expected = Uniduni_t{
+            .level = Color.Level.truecolor,
+            .start = "\x1b[4m",
+        };
+        const actual = Uniduni_t.init().underline();
+
+        try testing.expectEqualStrings(expected.start, actual.start);
+    }
+
+    pub inline fn slowblink(self: Uniduni_t) Uniduni_t {
+        const parsed_code = parse(@field(Style, @src().fn_name));
+        comptime return .{
+            .level = self.level,
+            .start = self.start ++ parsed_code,
+        };
+    }
+
+    test "Slow blink function" {
+        const expected = Uniduni_t{
+            .level = Color.Level.truecolor,
+            .start = "\x1b[5m",
+        };
+        const actual = Uniduni_t.init().slowblink();
+
+        try testing.expectEqualStrings(expected.start, actual.start);
+    }
+
+    pub inline fn rapidblink(self: Uniduni_t) Uniduni_t {
+        const parsed_code = parse(@field(Style, @src().fn_name));
+        comptime return .{
+            .level = self.level,
+            .start = self.start ++ parsed_code,
+        };
+    }
+
+    test "Rapid blink function" {
+        const expected = Uniduni_t{
+            .level = Color.Level.truecolor,
+            .start = "\x1b[6m",
+        };
+        const actual = Uniduni_t.init().rapidblink();
+
+        try testing.expectEqualStrings(expected.start, actual.start);
+    }
+
+    pub inline fn invert(self: Uniduni_t) Uniduni_t {
+        const parsed_code = parse(@field(Style, @src().fn_name));
+        comptime return .{
+            .level = self.level,
+            .start = self.start ++ parsed_code,
+        };
+    }
+
+    test "Invert function" {
+        const expected = Uniduni_t{
+            .level = Color.Level.truecolor,
+            .start = "\x1b[7m",
+        };
+        const actual = Uniduni_t.init().invert();
+
+        try testing.expectEqualStrings(expected.start, actual.start);
+    }
+
+    pub inline fn hide(self: Uniduni_t) Uniduni_t {
+        const parsed_code = parse(@field(Style, @src().fn_name));
+        comptime return .{
+            .level = self.level,
+            .start = self.start ++ parsed_code,
+        };
+    }
+
+    test "Hide function" {
+        const expected = Uniduni_t{
+            .level = Color.Level.truecolor,
+            .start = "\x1b[8m",
+        };
+        const actual = Uniduni_t.init().hide();
+
+        try testing.expectEqualStrings(expected.start, actual.start);
+    }
+
+    pub inline fn strike(self: Uniduni_t) Uniduni_t {
+        const parsed_code = parse(@field(Style, @src().fn_name));
+        comptime return .{
+            .level = self.level,
+            .start = self.start ++ parsed_code,
+        };
+    }
+
+    test "Strike function" {
+        const expected = Uniduni_t{
+            .level = Color.Level.truecolor,
+            .start = "\x1b[9m",
+        };
+        const actual = Uniduni_t.init().strike();
+
+        try testing.expectEqualStrings(expected.start, actual.start);
+    }
+
+    pub inline fn overline(self: Uniduni_t) Uniduni_t {
+        const parsed_code = parse(@field(Style, @src().fn_name));
+        comptime return .{
+            .level = self.level,
+            .start = self.start ++ parsed_code,
+        };
+    }
+
+    test "Overline function" {
+        const expected = Uniduni_t{
+            .level = Color.Level.truecolor,
+            .start = "\x1b[53m",
+        };
+        const actual = Uniduni_t.init().overline();
 
         try testing.expectEqualStrings(expected.start, actual.start);
     }
