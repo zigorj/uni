@@ -6,8 +6,8 @@ pub const Style = struct {
     pub const faint = "2";
     pub const italic = "3";
     pub const underline = "4";
-    pub const slowblink = "5";
-    pub const rapidblink = "6";
+    pub const slowBlink = "5";
+    pub const rapidBlink = "6";
     pub const invert = "7";
     pub const hide = "8";
     pub const strike = "9";
@@ -27,14 +27,14 @@ pub const Color = struct {
     };
 
     pub const Background = struct {
-        pub const black = "40";
-        pub const red = "41";
-        pub const green = "42";
-        pub const yellow = "43";
-        pub const blue = "44";
-        pub const magenta = "45";
-        pub const cyan = "46";
-        pub const white = "47";
+        pub const bgBlack = "40";
+        pub const bgRed = "41";
+        pub const bgGreen = "42";
+        pub const bgYellow = "43";
+        pub const bgBlue = "44";
+        pub const bgMagenta = "45";
+        pub const bgCyan = "46";
+        pub const bgWhite = "47";
     };
 
     pub const RGB = struct {
