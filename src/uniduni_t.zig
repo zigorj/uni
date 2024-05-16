@@ -26,8 +26,13 @@ pub const Uniduni_t = struct {
         };
 
         inline for (attribute) |value| {
-            const parsed_code = parse(value);
-            uni.start = uni.start ++ parsed_code;
+            switch (@TypeOf(value)) {
+                Color.RGB, *const [2:0]u8, *const [1:0]u8 => {
+                    const parsed_code = parse(value);
+                    uni.start = uni.start ++ parsed_code;
+                },
+                else => @compileError("The 'attribute' tupple must contain valid colors."),
+            }
         }
 
         return uni;
@@ -44,14 +49,26 @@ pub const Uniduni_t = struct {
         try testing.expectEqualStrings(expected.start, actual.start);
     }
 
-    inline fn parse(comptime attribute: []const u8) []const u8 {
-        comptime return attr.esc_char ++ attribute ++ "m";
+    inline fn parse(comptime attribute: anytype) []const u8 {
+        switch (@TypeOf(attribute)) {
+            *const [2:0]u8, *const [1:0]u8, *const [3:0]u8 => comptime return attr.esc_char ++ attribute ++ "m",
+            Color.RGB => {
+                return std.fmt.comptimePrint("{s}{d};2;{d};{d};{d}m", .{ attr.esc_char, @intFromEnum(attribute.t), attribute.r, attribute.g, attribute.b });
+            },
+            else => @compileError("The 'attribute' tupple must contain valid colors."),
+        }
     }
 
     test "Parse a string with colors" {
         const expected = attr.esc_char ++ "37m";
         const actual = parse(Color.Foreground.white);
         try testing.expectEqualSlices(u8, expected, actual);
+    }
+
+    test "Parse a string with RGB color" {
+        const expected = attr.esc_char ++ "38;2;35;78;102m";
+        const actual = parse(Color.RGB.fg(35, 78, 102));
+        try testing.expectEqualStrings(expected, actual);
     }
 
     pub inline fn black(self: Uniduni_t) Uniduni_t {
