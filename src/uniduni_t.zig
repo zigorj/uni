@@ -62,12 +62,18 @@ pub const Uniduni_t = struct {
     test "Parse a string with colors" {
         const expected = attr.esc_char ++ "37m";
         const actual = parse(Color.Foreground.white);
-        try testing.expectEqualSlices(u8, expected, actual);
+        try testing.expectEqualStrings(expected, actual);
     }
 
-    test "Parse a string with RGB color" {
+    test "Parse a string with RGB foreground color" {
         const expected = attr.esc_char ++ "38;2;35;78;102m";
         const actual = parse(Color.RGB.fg(35, 78, 102));
+        try testing.expectEqualStrings(expected, actual);
+    }
+
+    test "Parse a string with RGB background color" {
+        const expected = attr.esc_char ++ "48;2;35;78;102m";
+        const actual = parse(Color.RGB.bg(35, 78, 102));
         try testing.expectEqualStrings(expected, actual);
     }
 
