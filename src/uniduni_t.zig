@@ -843,6 +843,32 @@ pub const Uniduni_t = struct {
 
         try testing.expectEqualStrings(expected, actual);
     }
+
+    pub inline fn rgb(self: Uniduni_t, r: u8, g: u8, b: u8, t: Color.RGB.ColorType) Uniduni_t {
+        const parsed_code = parse(Color.RGB{
+            .r = r,
+            .g = g,
+            .b = b,
+            .t = t,
+        });
+        comptime return .{
+            .level = self.level,
+            .start = self.start ++ parsed_code,
+        };
+    }
+
+    test "RGB function" {
+        var expected = Uniduni_t{
+            .level = Color.Level.truecolor,
+            .start = "\x1b[38;2;255;255;255m",
+        };
+        var actual = Uniduni_t.init().rgb(255, 255, 255, Color.RGB.ColorType.foreground);
+        try testing.expectEqualStrings(expected.start, actual.start);
+
+        expected.start = "\x1b[48;2;255;255;255m";
+        actual = Uniduni_t.init().rgb(255, 255, 255, Color.RGB.ColorType.background);
+        try testing.expectEqualStrings(expected.start, actual.start);
+    }
 };
 
 test "Initialization of an Uniduni_t struct" {

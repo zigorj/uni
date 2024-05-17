@@ -59,7 +59,7 @@ pub const Color = struct {
         b: u8,
         t: ColorType,
 
-        const ColorType = enum(u8) {
+        pub const ColorType = enum(u8) {
             foreground = 38,
             background = 48,
         };
