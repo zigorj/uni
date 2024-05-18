@@ -57,19 +57,14 @@ pub const Color = struct {
         r: u8,
         g: u8,
         b: u8,
-        t: ColorType,
-
-        pub const ColorType = enum(u8) {
-            foreground = 38,
-            background = 48,
-        };
+        t: Color.Type,
 
         pub fn fg(r: u8, g: u8, b: u8) RGB {
             return .{
                 .r = r,
                 .g = g,
                 .b = b,
-                .t = RGB.ColorType.foreground,
+                .t = Color.Type.foreground,
             };
         }
 
@@ -78,9 +73,33 @@ pub const Color = struct {
                 .r = r,
                 .g = g,
                 .b = b,
-                .t = RGB.ColorType.background,
+                .t = Color.Type.background,
             };
         }
+    };
+
+    pub const Hex = struct {
+        code: []const u8,
+        t: Color.Type,
+
+        pub fn fg(code: []const u8) Hex {
+            return .{
+                .code = code,
+                .t = Color.Type.foreground,
+            };
+        }
+
+        pub fn bg(code: []const u8) Hex {
+            return .{
+                .code = code,
+                .t = Color.Type.background,
+            };
+        }
+    };
+
+    pub const Type = enum(u8) {
+        foreground = 38,
+        background = 48,
     };
 
     pub const Level = enum {

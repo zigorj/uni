@@ -27,7 +27,7 @@ pub const Uniduni_t = struct {
 
         inline for (attribute) |value| {
             switch (@TypeOf(value)) {
-                Color.RGB, *const [2:0]u8, *const [1:0]u8 => {
+                Color.Hex, Color.RGB, *const [3:0]u8, *const [2:0]u8, *const [1:0]u8 => {
                     const parsed_code = parse(value);
                     uni.start = uni.start ++ parsed_code;
                 },
@@ -49,9 +49,20 @@ pub const Uniduni_t = struct {
         try testing.expectEqualStrings(expected.start, actual.start);
     }
 
+    test "Add background color and a style" {
+        const expected = Uniduni_t{
+            .level = Color.Level.truecolor,
+            .start = "\x1b[101m\x1b[3m",
+        };
+
+        var actual = Uniduni_t.init().add(.{ Color.Background.bright_red, Style.italic });
+
+        try testing.expectEqualStrings(expected.start, actual.start);
+    }
+
     inline fn parse(comptime attribute: anytype) []const u8 {
         switch (@TypeOf(attribute)) {
-            *const [2:0]u8, *const [1:0]u8, *const [3:0]u8 => comptime return attr.esc_char ++ attribute ++ "m",
+            *const [3:0]u8, *const [2:0]u8, *const [1:0]u8 => return std.fmt.comptimePrint("{s}{s}m", .{ attr.esc_char, attribute }),
             Color.RGB => {
                 return std.fmt.comptimePrint("{s}{d};2;{d};{d};{d}m", .{ attr.esc_char, @intFromEnum(attribute.t), attribute.r, attribute.g, attribute.b });
             },
@@ -844,7 +855,7 @@ pub const Uniduni_t = struct {
         try testing.expectEqualStrings(expected, actual);
     }
 
-    pub inline fn rgb(self: Uniduni_t, r: u8, g: u8, b: u8, t: Color.RGB.ColorType) Uniduni_t {
+    pub inline fn rgb(self: Uniduni_t, r: u8, g: u8, b: u8, t: Color.Type) Uniduni_t {
         const parsed_code = parse(Color.RGB{
             .r = r,
             .g = g,
@@ -862,12 +873,22 @@ pub const Uniduni_t = struct {
             .level = Color.Level.truecolor,
             .start = "\x1b[38;2;255;255;255m",
         };
-        var actual = Uniduni_t.init().rgb(255, 255, 255, Color.RGB.ColorType.foreground);
+        var actual = Uniduni_t.init().rgb(255, 255, 255, Color.Type.foreground);
         try testing.expectEqualStrings(expected.start, actual.start);
 
         expected.start = "\x1b[48;2;255;255;255m";
-        actual = Uniduni_t.init().rgb(255, 255, 255, Color.RGB.ColorType.background);
+        actual = Uniduni_t.init().rgb(255, 255, 255, Color.Type.background);
         try testing.expectEqualStrings(expected.start, actual.start);
+    }
+
+    pub inline fn on(self: Uniduni_t) !void {
+        const stdout = std.io.getStdOut().writer();
+        try stdout.print("{s}", .{self.start});
+    }
+
+    pub inline fn off(self: Uniduni_t) !void {
+        const stdout = std.io.getStdOut().writer();
+        try stdout.print("{s}", .{self.end});
     }
 };
 

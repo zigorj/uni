@@ -58,6 +58,42 @@ pub fn main() !void {
 ### Print with RGB color:
 ```
 const std = @import("std");
+const Uniduni_t = @import("uniduni_t.zig").Uniduni_t;
+const attr = @import("attributes.zig");
+const Color = attr.Color;
+
+pub fn main() !void {
+    const stdout = std.io.getStdOut().writer();
+    const red = Uniduni_t.init().rgb(102, 0, 0, .foreground); // First way
+    const green = Uniduni_t.init().add(.{Color.RGB.fg(0, 102, 0)}); // Second way
+    const blue = Uniduni_t.init().add(.{Color.RGB.fg(0, 0, 102)});
+    try stdout.print("{s}{s}{s}\n", .{ red.format("R"), green.format("G"), blue.format("B") });
+
+    const bg_red = Uniduni_t.init().rgb(102, 0, 0, .background); // First way
+    const bg_green = Uniduni_t.init().add(.{Color.RGB.bg(0, 102, 0)}); // Second way
+    const bg_blue = Uniduni_t.init().add(.{Color.RGB.bg(0, 0, 102)});
+    try stdout.print("{s}{s}{s}\n", .{ bg_red.format("R"), bg_green.format("G"), bg_blue.format("B") });
+}
+```
+### Use uniduni_t on your existing code:
+```
+const std = @import("std");
+const Uniduni_t = @import("uniduni_t.zig").Uniduni_t;
+
+pub fn main() !void {
+    const stdout = std.io.getStdOut().writer();
+    const uni = Uniduni_t.init().cyan();
+
+    try uni.on();
+    try stdout.print("This is a cyan string\n", .{});
+
+    try uni.off();
+    try stdout.print("This is a default colored string\n", .{});
+}
+```
+### Print with Hexadecimal code:
+```
+const std = @import("std");
 
 const Uniduni_t = @import("uniduni_t.zig").Uniduni_t;
 const attr = @import("attributes.zig");
@@ -65,20 +101,11 @@ const Color = attr.Color;
 
 pub fn main() !void {
     const stdout = std.io.getStdOut().writer();
-    const red = Uniduni_t.init().add(.{Color.RGB.fg(102, 0, 0)});
-    const green = Uniduni_t.init().add(.{Color.RGB.fg(0, 102, 0)});
-    const blue = Uniduni_t.init().add(.{Color.RGB.fg(0, 0, 102)});
-    try stdout.print("{s}{s}{s}\n", .{ red.format("R"), green.format("G"), blue.format("B") });
-
-    const bg_red = Uniduni_t.init().add(.{Color.RGB.bg(102, 0, 0)});
-    const bg_green = Uniduni_t.init().add(.{Color.RGB.bg(0, 102, 0)});
-    const bg_blue = Uniduni_t.init().add(.{Color.RGB.bg(0, 0, 102)});
-    try stdout.print("{s}{s}{s}\n", .{ bg_red.format("R"), bg_green.format("G"), bg_blue.format("B") });
+    const first = Uniduni_t.init().add(.{ Color.Hex.fg("#a7c080"), Color.Hex.bg("2d353b") }); // First way
+    const second = Uniduni_t.init().hex("#A7C080", .foreground).hex("#2D353B", .background); // Second way
+    try stdout.print("{s}\n", .{first.format("We accept hexadecimal too! Yay!")});
+    try stdout.print("{s}\n", .{second.format("Everforest theme is great!")});
 }
 ```
-### Use uniduni_t on your existing code:
-```
-```
 ## TODO:
-- Add hex support
 - Detect TTY
