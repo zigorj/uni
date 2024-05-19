@@ -27,7 +27,7 @@ pub const Uniduni_t = struct {
 
         inline for (attribute) |value| {
             switch (@TypeOf(value)) {
-                Color.Hex, Color.RGB, *const [3:0]u8, *const [2:0]u8, *const [1:0]u8 => {
+                Color.Hex, Color.RGB, Color.Foreground, Color.Background, Style => {
                     const parsed_code = parse(value);
                     uni.start = uni.start ++ parsed_code;
                 },
@@ -62,7 +62,7 @@ pub const Uniduni_t = struct {
 
     inline fn parse(comptime attribute: anytype) []const u8 {
         switch (@TypeOf(attribute)) {
-            *const [3:0]u8, *const [2:0]u8, *const [1:0]u8 => return std.fmt.comptimePrint("{s}{s}m", .{ attr.esc_char, attribute }),
+            Color.Foreground, Color.Background, Style => return std.fmt.comptimePrint("{s}{d}m", .{ attr.esc_char, @intFromEnum(attribute) }),
             Color.RGB => {
                 return std.fmt.comptimePrint("{s}{d};2;{d};{d};{d}m", .{ attr.esc_char, @intFromEnum(attribute.t), attribute.r, attribute.g, attribute.b });
             },
