@@ -66,7 +66,13 @@ pub const Uniduni_t = struct {
             Color.RGB => {
                 return std.fmt.comptimePrint("{s}{d};2;{d};{d};{d}m", .{ attr.esc_char, @intFromEnum(attribute.t), attribute.r, attribute.g, attribute.b });
             },
-            else => @compileError("The 'attribute' tupple must contain valid colors."),
+            Color.Hex => {
+                const hex = if (attribute.code[0] == '#') attribute.code[1..] else attribute.code;
+                const hex_to_rgb = std.fmt.parseInt(u32, hex, 16) catch @compileError("Error parsing hex code " ++ attribute.code);
+                std.debug.print("{any}\n", .{hex_to_rgb});
+                return "";
+            },
+            else => @compileError("The 'attribute' must be one of the following types: Color.Foreground, Color.Background, Color.RGB, Color.Hex or Style."),
         }
     }
 
