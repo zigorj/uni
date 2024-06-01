@@ -6,7 +6,7 @@
 
 It was built with :heart:, as part of my ongoing journey of learning Zig.
 
-I'm so grateful for all the help I got from the (Ziggit.dev)[https://ziggit.dev] community!
+I'm so grateful for all the help I got from the [Ziggit.dev](https://ziggit.dev) community!
 
 ## Examples:
 
