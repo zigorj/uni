@@ -107,5 +107,17 @@ pub const Color = struct {
         basic,
         color256,
         truecolor,
+
+        pub fn detect() Level {
+            const stdout = std.io.getStdOut();
+            const color_term = std.posix.getenv("COLORTERM");
+            const term = std.posix.getenv("TERM");
+            const no_color = std.posix.getenv("NO_COLOR");
+
+            if (!stdout.supportsAnsiEscapeCodes() or no_color) return .none;
+            if (color_term and (std.mem.eql(u8, color_term, "truecolor" or std.mem.eql(u8, color_term, "24bit")))) return .truecolor;
+            if (term and (std.mem.endsWith(u8, term, "256") or std.mem.endsWith(u8, term, "256color"))) return .color256;
+            return .basic;
+        }
     };
 };

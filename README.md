@@ -110,6 +110,5 @@ pub fn main() !void {
 }
 ```
 ## TODO:
-- Detect TTY
 - Simplify the code
 - Documentation
