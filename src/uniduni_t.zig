@@ -44,7 +44,7 @@ pub const Uniduni_t = struct {
             .start = "\x1b[31m\x1b[1m",
         };
 
-        var actual = Uniduni_t.init().add(.{ Color.Foreground.red, Style.bold });
+        const actual = Uniduni_t.init().add(.{ Color.Foreground.red, Style.bold });
 
         try testing.expectEqualStrings(expected.start, actual.start);
     }
@@ -55,7 +55,7 @@ pub const Uniduni_t = struct {
             .start = "\x1b[101m\x1b[3m",
         };
 
-        var actual = Uniduni_t.init().add(.{ Color.Background.bright_red, Style.italic });
+        const actual = Uniduni_t.init().add(.{ Color.Background.bright_red, Style.italic });
 
         try testing.expectEqualStrings(expected.start, actual.start);
     }
@@ -67,10 +67,15 @@ pub const Uniduni_t = struct {
                 return std.fmt.comptimePrint("{s}{d};2;{d};{d};{d}m", .{ attr.esc_char, @intFromEnum(attribute.t), attribute.r, attribute.g, attribute.b });
             },
             Color.Hex => {
-                const hex = if (attribute.code[0] == '#') attribute.code[1..] else attribute.code;
-                const hex_to_rgb = std.fmt.parseInt(u32, hex, 16) catch @compileError("Error parsing hex code " ++ attribute.code);
-                std.debug.print("{any}\n", .{hex_to_rgb});
-                return "";
+                const hex_code: []const u8 = if (attribute.code[0] == '#') attribute.code[1..] else attribute.code;
+                const hex_to_dec: u32 = comptime std.fmt.parseInt(u32, hex_code, 16) catch @compileError("Error parsing hex code " ++ hex_code);
+
+                return parse(Color.RGB{
+                    .r = hex_to_dec >> 16,
+                    .g = (hex_to_dec >> 8) & 0xFF,
+                    .b = hex_to_dec & 0xFF,
+                    .t = if (attribute.t == .foreground) .foreground else .background,
+                });
             },
             else => @compileError("The 'attribute' must be one of the following types: Color.Foreground, Color.Background, Color.RGB, Color.Hex or Style."),
         }
@@ -91,6 +96,22 @@ pub const Uniduni_t = struct {
     test "Parse a string with RGB background color" {
         const expected = attr.esc_char ++ "48;2;35;78;102m";
         const actual = parse(Color.RGB.bg(35, 78, 102));
+        try testing.expectEqualStrings(expected, actual);
+    }
+
+    test "Parse a string with hex colors" {
+        var expected = attr.esc_char ++ "38;2;171;8;15m";
+        var actual = parse(Color.Hex.fg("#ab080f"));
+        try testing.expectEqualStrings(expected, actual);
+
+        actual = parse(Color.Hex.fg("AB080F"));
+        try testing.expectEqualStrings(expected, actual);
+
+        expected = attr.esc_char ++ "48;2;171;8;15m";
+        actual = parse(Color.Hex.bg("#ab080f"));
+        try testing.expectEqualStrings(expected, actual);
+
+        actual = parse(Color.Hex.bg("AB080F"));
         try testing.expectEqualStrings(expected, actual);
     }
 
@@ -884,6 +905,30 @@ pub const Uniduni_t = struct {
 
         expected.start = "\x1b[48;2;255;255;255m";
         actual = Uniduni_t.init().rgb(255, 255, 255, Color.Type.background);
+        try testing.expectEqualStrings(expected.start, actual.start);
+    }
+
+    pub inline fn hex(self: Uniduni_t, code: []const u8, t: Color.Type) Uniduni_t {
+        const parsed_code = parse(Color.Hex{
+            .code = code,
+            .t = t,
+        });
+        comptime return .{
+            .level = self.level,
+            .start = self.start ++ parsed_code,
+        };
+    }
+
+    test "Hex function" {
+        var expected = Uniduni_t{
+            .level = Color.Level.truecolor,
+            .start = "\x1b[38;2;255;255;255m",
+        };
+        var actual = Uniduni_t.init().hex("#ffffff", .foreground);
+        try testing.expectEqualStrings(expected.start, actual.start);
+
+        expected.start = "\x1b[48;2;255;255;255m";
+        actual = Uniduni_t.init().hex("ffffff", .background);
         try testing.expectEqualStrings(expected.start, actual.start);
     }
 

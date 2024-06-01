@@ -6,6 +6,8 @@
 
 It was built with :heart:, as part of my ongoing journey of learning Zig.
 
+I'm so grateful for all the help I got from the (Ziggit.dev)[https://ziggit.dev] community!
+
 ## Examples:
 
 ### Print with custom foreground, background color and style:
@@ -102,10 +104,12 @@ const Color = attr.Color;
 pub fn main() !void {
     const stdout = std.io.getStdOut().writer();
     const first = Uniduni_t.init().add(.{ Color.Hex.fg("#a7c080"), Color.Hex.bg("2d353b") }); // First way
-    const second = Uniduni_t.init().hex("#A7C080", .foreground).hex("#2D353B", .background); // Second way
+    const second = Uniduni_t.init().hex("A7C080", .foreground).hex("#2D353B", .background); // Second way
     try stdout.print("{s}\n", .{first.format("We accept hexadecimal too! Yay!")});
     try stdout.print("{s}\n", .{second.format("Everforest theme is great!")});
 }
 ```
 ## TODO:
 - Detect TTY
+- Simplify the code
+- Documentation
