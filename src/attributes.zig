@@ -1,6 +1,9 @@
 const std = @import("std");
+
+/// Escape character for ANSI escape codes.
 pub const esc_char: []const u8 = "\x1b[";
 
+/// Enum representing various text styles.
 pub const Style = enum(u8) {
     bold = 1,
     faint,
@@ -14,7 +17,9 @@ pub const Style = enum(u8) {
     overline = 53,
 };
 
+/// Struct containing color-related constants and utilities.
 pub const Color = struct {
+    /// Enum representing foreground colors.
     pub const Foreground = enum(u8) {
         black = 30,
         red,
@@ -34,6 +39,7 @@ pub const Color = struct {
         bright_white,
     };
 
+    /// Enum representing background colors.
     pub const Background = enum(u8) {
         black = 40,
         red,
@@ -53,12 +59,16 @@ pub const Color = struct {
         bright_white,
     };
 
+    /// Struct representing RGB color values.
     pub const RGB = struct {
         r: u8,
         g: u8,
         b: u8,
         t: Color.Type,
 
+        /// Function to create a foreground RGB color.
+        ///
+        /// Returns an RGB instance.
         pub fn fg(r: u8, g: u8, b: u8) RGB {
             return .{
                 .r = r,
@@ -68,6 +78,9 @@ pub const Color = struct {
             };
         }
 
+        /// Function to create a background RGB color.
+        ///
+        /// Returns an RGB instance.
         pub fn bg(r: u8, g: u8, b: u8) RGB {
             return .{
                 .r = r,
@@ -78,10 +91,14 @@ pub const Color = struct {
         }
     };
 
+    /// Struct representing hexadecimal color codes.
     pub const Hex = struct {
         code: []const u8,
         t: Color.Type,
 
+        /// Function to create a foreground color from a hexadecimal code.
+        ///
+        /// Returns a Hex instance.
         pub fn fg(code: []const u8) Hex {
             return .{
                 .code = code,
@@ -89,6 +106,9 @@ pub const Color = struct {
             };
         }
 
+        /// Function to create a background color from a hexadecimal code.
+        ///
+        /// Returns a Hex instance.
         pub fn bg(code: []const u8) Hex {
             return .{
                 .code = code,
@@ -97,17 +117,22 @@ pub const Color = struct {
         }
     };
 
+    /// Enum representing color types (foreground or background).
     pub const Type = enum(u8) {
         foreground = 38,
         background = 48,
     };
 
+    /// Enum representing color levels for detecting color support.
     pub const Level = enum {
         none,
         basic,
         color256,
         truecolor,
 
+        /// Function to detect the level of color support.
+        ///
+        /// Returns a Level enum option.
         pub fn detect() Level {
             const stdout = std.io.getStdOut();
             const color_term = std.posix.getenv("COLORTERM");

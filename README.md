@@ -1,4 +1,4 @@
-![uniduni_t image](https://codeberg.org/attachments/f0ba7e70-05fe-4f6a-9aa8-1f8bbb087d15)
+![uniduni_t image](uniduni_t.jpeg)
 
 # uniduni_t
 
@@ -31,8 +31,11 @@ const Uniduni_t = @import("uniduni_t.zig").Uniduni_t;
 
 pub fn main() !void {
     const stdout = std.io.getStdOut().writer();
-    const green = Uniduni_t.init().green().bold();
+    const green = Uniduni_t.init().green(.foreground).bold();
     try stdout.print("{s}: success!\n", .{green.format("GREAT")});
+
+    const bg_green = Uniduni_t.init().green(.background).bold();
+    try stdout.print("{s}: success!\n", .{bg_green.format("GREAT")});
 }
 ```
 ### Colorize a string:
@@ -42,7 +45,7 @@ const Uniduni_t = @import("uniduni_t.zig").Uniduni_t;
 
 pub fn main() !void {
     const stdout = std.io.getStdOut().writer();
-    const bright_yellow_string = Uniduni_t.init().brightYellow().format("This is a bright yellow string");
+    const bright_yellow_string = Uniduni_t.init().brightYellow(.foreground).format("This is a bright yellow string");
     try stdout.print("{s}\n", .{bright_yellow_string});
 }
 ```
@@ -53,7 +56,7 @@ const Uniduni_t = @import("uniduni_t.zig").Uniduni_t;
 
 pub fn main() !void {
     const stdout = std.io.getStdOut().writer();
-    const magenta = Uniduni_t.init().magenta();
+    const magenta = Uniduni_t.init().magenta(.foreground);
     try stdout.print("This is {s}. This is also a magenta word: {s}.\n", .{ magenta.format("magenta"), magenta.format("Uniduni_t") });
 }
 ```
@@ -84,7 +87,7 @@ const Uniduni_t = @import("uniduni_t.zig").Uniduni_t;
 
 pub fn main() !void {
     const stdout = std.io.getStdOut().writer();
-    const uni = Uniduni_t.init().cyan();
+    const uni = Uniduni_t.init().cyan(.foreground);
 
     try uni.on();
     try stdout.print("This is a cyan string\n", .{});
@@ -110,5 +113,4 @@ pub fn main() !void {
 }
 ```
 ## TODO:
-- Simplify the code
-- Documentation
+- Detect TTY color and print accordingly
