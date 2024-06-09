@@ -1,4 +1,4 @@
-![uniduni_t image](uniduni_t.jpeg)
+![uniduni_t image](uniduni_t.png)
 
 # uniduni_t
 
