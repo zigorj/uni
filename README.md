@@ -27,7 +27,37 @@ I'm so grateful for all the help I got from the [Ziggit.dev](https://ziggit.dev)
 
 ## How to use Uniduni_t in your project?
 
-WIP
+1. Add Uniduni_t as a dependency in your `build.zig.zon` file, running the following command: `zig fetch --save https://codeberg.org/fwinter/uniduni_t/archive/main.tar.gz`
+```
+.{
+    .name = "YourProject",
+    .version = "0.0.0",
+    .dependencies = .{
+        .uniduni_t = .{
+            .url = "https://codeberg.org/fwinter/uniduni_t/archive/main.tar.gz",
+            .hash = "122031b19f9408c0cf9e45b6d2e96ed119778af64efd0d8d67ca5803302286107db3",
+        },
+    },
+    .paths = .{
+        "",
+    },
+}
+```
+
+2. Import Uniduni_t in your `build.zig` file:
+```
+pub fn build(b: *std.Build) void {
+   const exe = b.addExecutable(.{ ... });
+
+   const uniduni_t = b.dependency("uniduni_t", .{
+      .target = target,
+      .optimize = optimize,
+   });
+   exe.root_module.addImport("uniduni_t", uniduni_t.module("uniduni_t"));
+}
+```
+
+3. See the examples below for usage.
 
 ## Examples:
 
@@ -36,10 +66,9 @@ WIP
 
 ```
 const std = @import("std");
-const Uniduni_t = @import("uniduni_t.zig").Uniduni_t;
-const attr = @import("attributes.zig");
-const Color = attr.Color;
-const Style = attr.Style;
+const Uniduni_t = @import("uniduni_t");
+const Color = Uniduni_t.Color;
+const Style = Uniduni_t.Style;
 
 pub fn main() !void {
     const stdout = std.io.getStdOut().writer();
@@ -55,7 +84,7 @@ pub fn main() !void {
 
 ```
 const std = @import("std");
-const Uniduni_t = @import("uniduni_t.zig").Uniduni_t;
+const Uniduni_t = @import("uniduni_t");
 
 pub fn main() !void {
     const stdout = std.io.getStdOut().writer();
@@ -74,7 +103,7 @@ pub fn main() !void {
 
 ```
 const std = @import("std");
-const Uniduni_t = @import("uniduni_t.zig").Uniduni_t;
+const Uniduni_t = @import("uniduni_t");
 
 pub fn main() !void {
     const stdout = std.io.getStdOut().writer();
@@ -90,7 +119,7 @@ pub fn main() !void {
 
 ```
 const std = @import("std");
-const Uniduni_t = @import("uniduni_t.zig").Uniduni_t;
+const Uniduni_t = @import("uniduni_t");
 
 pub fn main() !void {
     const stdout = std.io.getStdOut().writer();
@@ -106,9 +135,8 @@ pub fn main() !void {
 
 ```
 const std = @import("std");
-const Uniduni_t = @import("uniduni_t.zig").Uniduni_t;
-const attr = @import("attributes.zig");
-const Color = attr.Color;
+const Uniduni_t = @import("uniduni_t");
+const Color = Uniduni_t.Color;
 
 pub fn main() !void {
     const stdout = std.io.getStdOut().writer();
@@ -131,7 +159,7 @@ pub fn main() !void {
 
 ```
 const std = @import("std");
-const Uniduni_t = @import("uniduni_t.zig").Uniduni_t;
+const Uniduni_t = @import("uniduni_t");
 
 pub fn main() !void {
     const stdout = std.io.getStdOut().writer();
@@ -153,9 +181,8 @@ pub fn main() !void {
 ```
 const std = @import("std");
 
-const Uniduni_t = @import("uniduni_t.zig").Uniduni_t;
-const attr = @import("attributes.zig");
-const Color = attr.Color;
+const Uniduni_t = @import("uniduni_t");
+const Color = Uniduni_t.Color;
 
 pub fn main() !void {
     const stdout = std.io.getStdOut().writer();

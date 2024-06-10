@@ -1,7 +1,7 @@
 .{
     .name = "uniduni_t",
     .version = "0.9.0",
-    .minimum_zig_version = "0.11.0",
+    .minimum_zig_version = "0.12.0",
     .dependencies = .{},
     .paths = .{
         "build.zig",

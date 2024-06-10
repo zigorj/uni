@@ -5,23 +5,29 @@ pub fn build(b: *std.Build) void {
 
     const optimize = b.standardOptimizeOption(.{});
 
-    const lib = b.addStaticLibrary(.{
-        .name = "uniduni_t",
-        .root_source_file = .{ .path = "src/main.zig" },
+    _ = b.addModule("uniduni_t", .{
+        .root_source_file = .{ .path = "src/uniduni_t.zig" },
         .target = target,
         .optimize = optimize,
     });
 
-    b.installArtifact(lib);
-
-    const main_tests = b.addTest(.{
-        .root_source_file = .{ .path = "src/main.zig" },
+    const uni_tests = b.addTest(.{
+        .root_source_file = .{ .path = "src/uniduni_t.zig" },
         .target = target,
         .optimize = optimize,
     });
 
-    const run_main_tests = b.addRunArtifact(main_tests);
+    const run_uni_tests = b.addRunArtifact(uni_tests);
+
+    const attr_tests = b.addTest(.{
+        .root_source_file = .{ .path = "src/attributes.zig" },
+        .target = target,
+        .optimize = optimize,
+    });
+
+    const run_attr_tests = b.addRunArtifact(attr_tests);
 
     const test_step = b.step("test", "Run library tests");
-    test_step.dependOn(&run_main_tests.step);
+    test_step.dependOn(&run_uni_tests.step);
+    test_step.dependOn(&run_attr_tests.step);
 }
