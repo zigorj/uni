@@ -6,13 +6,13 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     _ = b.addModule("uniduni_t", .{
-        .root_source_file = .{ .path = "src/uniduni_t.zig" },
+        .root_source_file = b.path("src/uniduni_t.zig"),
         .target = target,
         .optimize = optimize,
     });
 
     const uni_tests = b.addTest(.{
-        .root_source_file = .{ .path = "src/uniduni_t.zig" },
+        .root_source_file = b.path("src/uniduni_t.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -20,7 +20,7 @@ pub fn build(b: *std.Build) void {
     const run_uni_tests = b.addRunArtifact(uni_tests);
 
     const attr_tests = b.addTest(.{
-        .root_source_file = .{ .path = "src/attributes.zig" },
+        .root_source_file = b.path("src/attributes.zig"),
         .target = target,
         .optimize = optimize,
     });
