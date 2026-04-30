@@ -12,17 +12,21 @@ pub fn build(b: *std.Build) void {
     });
 
     const uni_tests = b.addTest(.{
-        .root_source_file = b.path("src/uniduni_t.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/uniduni_t.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
 
     const run_uni_tests = b.addRunArtifact(uni_tests);
 
     const attr_tests = b.addTest(.{
-        .root_source_file = b.path("src/attributes.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/attributes.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
 
     const run_attr_tests = b.addRunArtifact(attr_tests);

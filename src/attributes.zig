@@ -134,8 +134,8 @@ pub const Color = struct {
         ///
         /// Returns a Level enum option.
         pub fn detect() Level {
-            const stdout = std.io.getStdOut();
-            const color_term = std.posix.getenv("COLORTERM");
+            const stdout = std.Io.File.stdout();
+            const color_term = std.os.getenv("COLORTERM");
             const term = std.posix.getenv("TERM");
             const no_color = std.posix.getenv("NO_COLOR");
 
