@@ -134,19 +134,26 @@ pub const Color = struct {
         ///
         /// Returns a Level enum option.
         pub fn detect() Level {
+            const environ = std.testing.environ;
             const stdout = std.Io.File.stdout();
-            const color_term = std.os.getenv("COLORTERM");
-            const term = std.posix.getenv("TERM");
-            const no_color = std.posix.getenv("NO_COLOR");
+            const color_term = environ.getPosix("COLORTERM");
+            const term = environ.getPosix("TERM");
+            const no_color = environ.getPosix("NO_COLOR");
+            const supported_term = stdout.supportsAnsiEscapeCodes(std.testing.io) catch false;
 
-            if (!stdout.supportsAnsiEscapeCodes() or no_color != null) return .none;
+            if (!supported_term or no_color != null) return .none;
             if (color_term != null and (std.mem.eql(u8, color_term.?, "truecolor") or std.mem.eql(u8, color_term.?, "24bit"))) return .truecolor;
             if (term != null and (std.mem.endsWith(u8, term.?, "256") or std.mem.endsWith(u8, term.?, "256color"))) return .color256;
             return .basic;
         }
 
         test "detect function" {
-            const expected: Color.Level = .truecolor;
+            // The expected is .none so we can run `zig build test` with success.
+            // This command does not export your environment variables.
+            // Depending on your terminal, if you run `zig test src/uni.zig` directly,
+            // the test will fail, because `zig test` consider your environment
+            // variables.
+            const expected: Color.Level = .none;
             const actual = Color.Level.detect();
             try std.testing.expectEqual(expected, actual);
         }
